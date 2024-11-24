@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User{
+  id String @id @default(uuid())
+  email String @unique
+  mobileNumber String @unique
+  password String
+  messages Message[]
+  conversations ConverstionParticipant[]
+  myContacts Contact[]
+  ReadStatus ReadStatus[]
+}
+
+model Message{
+  message_id String @id @default(uuid())
+  conversationId  String
+  content String
+  createdAt DateTime @default(now())
+  messageSentBy String
+  ReadStatus ReadStatus[]
+  conversation    Conversation @relation(fields: [conversationId], references: [conversation_id])
+  user User @relation(fields:[messageSentBy], references:[id])
+}
+
+model ReadStatus {
+  id              String   @id @default(uuid())
+  userId          String   // The user who reads the message
+  messageId       String   // The message being read
+  conversationId  String   // The conversation the message belongs to
+  isRead          Boolean  @default(false)
+  readAt          DateTime @default(now())
+  conversation    Conversation @relation(fields: [conversationId], references: [conversation_id])
+  user            User         @relation(fields: [userId], references: [id])
+  message         Message      @relation(fields: [messageId], references: [message_id])
+  @@unique([userId, messageId])
+}
+
+enum conversationType{
+  GROUP
+  NORMAL
+}
+// two types of conversations
+// in a normal type conversation, same two people cannot be in two different conversations ie., there should not be two entries for same two users
+// in a group 
+model Conversation{
+  conversation_id String @id @default(uuid())
+  type conversationType @default(NORMAL)
+  conversationName String?
+  conversationParticipants ConverstionParticipant[]
+  ReadStatus ReadStatus[]
+  createdAt DateTime @default(now())
+  messages    Message[]
+  DateModified DateTime @default(now())
+  
+}
+
+model ConverstionParticipant{
+  id String @id @default(uuid())
+  conversationId String
+  conversation Conversation @relation(fields:[conversationId],references:[conversation_id])
+  participantNumber String
+  user User @relation(fields: [participantNumber], references:[mobileNumber])  
+  @@unique([conversationId, participantNumber])
+}
+
+model Contact{
+  contactId String @id @default(uuid())
+  savedById String
+  mobileNumber String 
+  contactName String
+  user User @relation(fields: [savedById], references: [id])
+  @@unique([savedById, mobileNumber])
+}

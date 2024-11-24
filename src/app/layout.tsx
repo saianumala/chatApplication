@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import RecoilProvider from "./recoilProvider";
+import { Session_Provider } from "./sessionProvider";
+import AllConversations from "@/components/allConversations";
+import { useSession } from "next-auth/react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,7 +20,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <Session_Provider>
+        <RecoilProvider>
+          <body className={inter.className}>{children}</body>
+        </RecoilProvider>
+      </Session_Provider>
     </html>
   );
 }

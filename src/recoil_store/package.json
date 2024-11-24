@@ -1,0 +1,17 @@
+{
+  "name": "@repo/recoil_store",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "recoil": "^0.7.7"
+  },
+  "exports": {
+    "./useBalance": "./src/hooks/useBalance.ts",
+    "./balanceAtom": "./src/atoms/balance.ts",
+    "./userAtom": "./src/atoms/userAtoms.ts",
+    "./errorAtom": "./src/atoms/errorAtom.ts",
+    "./pageAtom": "./src/atoms/pagesAtoms.ts",
+    "./bankProviderAtom": "./src/atoms/atoms.ts"
+  }
+}
