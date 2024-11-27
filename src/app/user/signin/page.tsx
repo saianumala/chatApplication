@@ -11,7 +11,7 @@ export default function SignIn() {
   useEffect(() => {
     console.log(session);
     if (session) {
-      router.push("http://localhost:3000");
+      router.push(`/`);
     }
   }, [session]);
 

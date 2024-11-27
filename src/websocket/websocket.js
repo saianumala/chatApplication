@@ -47,19 +47,14 @@ class Client {
 }
 let worker;
 let router = {};
-// let producers: {
-//   [conversationId: string]: {
-//     [produceId:string]: mediasoup.types.Producer<mediasoup.types.AppData>;
-//   }
-// } = {};
-let consumers = {};
+let callsInvolvedIn = {};
 let transports = {};
 let onGoingCall = {};
 const server = http_1.default.createServer((request, response) => {
-    console.log("wwebsocket server");
+    console.log("websocket server");
     response.end("hello");
 });
-server.listen(8080, () => {
+server.listen(8080, "0.0.0.0", () => {
     console.log("server is running");
 });
 const wss = new ws_1.WebSocketServer({ server });
@@ -80,96 +75,182 @@ const clients = new Map();
 const openConversations = new Map();
 const closeConversations = new Map();
 wss.on("connection", function connection(socket, req) {
-    console.log("websocket connected");
-    const connectionUrl = new URL(req.url, `http://${req.headers.host}`);
-    const clientId = connectionUrl.searchParams.get("clientId");
-    if (!clientId) {
-        console.error("clientId is required");
-        socket.send("clientId is required");
-        socket.close();
-        return;
-    }
-    const client = clients.get(clientId);
-    if (!client || !client.socket) {
-        const client = new Client(clientId, socket);
-        clients.set(clientId, client);
-    }
-    socket.on("error", (error) => {
-        console.error(error);
-    });
-    socket.on("message", function message(data, isBinary) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const deStrucutedData = data.toString();
-                const conversationData = JSON.parse(deStrucutedData);
-                console.log("messageType: ", conversationData.messageType);
-                switch (conversationData.messageType) {
-                    case "openConversation":
-                        // console.log("openconverstion", conversationData.messageData);
-                        handleOpenConversation({
-                            userId: conversationData.messageData.senderId,
-                            conversationId: conversationData.messageData.conversationId,
-                        });
-                        break;
-                    case "closeConversation":
-                        handleCloseConversation({
-                            userId: conversationData.messageData.senderId,
-                            conversationId: conversationData.messageData.conversationId,
-                        });
-                        break;
-                    case "sendMessage":
-                        sendMessage(conversationData.messageData, isBinary);
-                        break;
-                    case "peerConnectionOffer":
-                        peerConnectionOffer(conversationData);
-                        break;
-                    case "peerConnectionAnswer":
-                        peerConnectionAnswer(conversationData);
-                    case "iceCandidate":
-                        iceCandidate(conversationData);
-                        break;
-                    case "initiatedCall":
-                        callInitiated(conversationData.messageData);
-                        break;
-                    case "joinCall":
-                        sendRtpCapabilities(conversationData.messageData);
-                        break;
-                    case "createTransport":
-                        createTransport(conversationData.messageData);
-                        break;
-                    case "connectTransport":
-                        connectTransport(conversationData.messageData);
-                        break;
-                    case "createProduce":
-                        createProduce(conversationData.messageData);
-                        break;
-                    case "consume":
-                        createConsume(conversationData.messageData);
-                        break;
-                    case "getProducers":
-                        sendProducers(conversationData.messageData);
-                    default:
-                        break;
+    return __awaiter(this, void 0, void 0, function* () {
+        console.log("websocket connected");
+        console.log("websocket ready state: ", socket.readyState);
+        const connectionUrl = new URL(req.url, `http://${req.headers.host}`);
+        const clientId = connectionUrl.searchParams.get("clientId");
+        if (!clientId) {
+            console.error("clientId is required");
+            socket.send("clientId is required");
+            socket.close();
+            return;
+        }
+        const client = clients.get(clientId);
+        console.log("client:", clients.has(clientId));
+        if (!client || !client.socket) {
+            console.log("creating new client and setting them to the map");
+            const client = new Client(clientId, socket);
+            clientId && clients.set(clientId, client);
+        }
+        else {
+            console.log("client already present proceeding with the existing client");
+        }
+        setInterval(() => {
+            console.log("websocket state: ", socket.readyState);
+        }, 5000);
+        // let count =1
+        socket.on("error", (error) => {
+            console.error(error);
+        });
+        socket.on("message", function message(data, isBinary) {
+            return __awaiter(this, void 0, void 0, function* () {
+                try {
+                    const deStrucutedData = data.toString();
+                    const conversationData = JSON.parse(deStrucutedData);
+                    console.log("messageType: ", conversationData.messageType);
+                    switch (conversationData.messageType) {
+                        case "openConversation":
+                            // console.log("openconverstion", conversationData.messageData);
+                            handleOpenConversation({
+                                userId: conversationData.messageData.senderId,
+                                conversationId: conversationData.messageData.conversationId,
+                            });
+                            break;
+                        case "closeConversation":
+                            handleCloseConversation({
+                                userId: conversationData.messageData.senderId,
+                                conversationId: conversationData.messageData.conversationId,
+                            });
+                            break;
+                        case "sendMessage":
+                            sendMessage(conversationData.messageData, isBinary);
+                            break;
+                        case "peerConnectionOffer":
+                            peerConnectionOffer(conversationData);
+                            break;
+                        case "peerConnectionAnswer":
+                            peerConnectionAnswer(conversationData);
+                        case "iceCandidate":
+                            iceCandidate(conversationData);
+                            break;
+                        case "initiatedCall":
+                            callInitiated(conversationData.messageData);
+                            break;
+                        case "joinCall":
+                            sendRtpCapabilities(conversationData.messageData);
+                            break;
+                        case "createTransport":
+                            createTransport(conversationData.messageData);
+                            break;
+                        case "connectTransport":
+                            connectTransport(conversationData.messageData);
+                            break;
+                        case "createProduce":
+                            createProduce(conversationData.messageData);
+                            break;
+                        case "consume":
+                            createConsume(conversationData.messageData);
+                            break;
+                        case "getProducers":
+                            sendProducers(conversationData.messageData);
+                            break;
+                        case "callEnded":
+                            console.log("call ended data: ", conversationData.messageData);
+                            clearMediaSoupConnection(conversationData.messageData.conversationId, conversationData.messageData.transportIds, conversationData.messageData.userId);
+                            break;
+                        default:
+                            break;
+                    }
                 }
-            }
-            catch (error) {
-                console.error("Error sending message:", error);
+                catch (error) {
+                    console.error("Error sending message:", error);
+                }
+            });
+        });
+        socket.on("close", function close() {
+            console.log("clientId", clientId);
+            if (clientId) {
+                const client = clients.get(clientId);
+                if (client) {
+                    console.log("cleaning client");
+                    // try {
+                    //   // onGoingCall[clientId]
+                    //   console.log("callsInvonvedIn: ", callsInvolvedIn[client.clientId]);
+                    //   if (callsInvolvedIn) {
+                    //     const conversationId =
+                    //       callsInvolvedIn[client.clientId]?.conversationId;
+                    //     const transportIds = callsInvolvedIn[client.clientId]?.transportIds;
+                    //     if (conversationId) {
+                    //       clearMediaSoupConnection(conversationId, transportIds, clientId);
+                    //     }
+                    //   }
+                    //   openConversations.delete(clientId);
+                    //   closeConversations.delete(clientId);
+                    // } catch (error) {
+                    //   console.error(error);
+                    // }
+                    if (client.socket.readyState === ws_1.WebSocket.OPEN) {
+                        console.log("closing the socket and deleting the client from client map");
+                        client === null || client === void 0 ? void 0 : client.socket.close();
+                        clients.delete(clientId);
+                    }
+                    console.log("is client present", clients.has(clientId));
+                    clients.delete(clientId);
+                    console.log("after deleting client: ", clients.has(clientId));
+                }
+                console.log("websocket state in close event: ", socket.readyState);
+                console.log("socket connection closed");
             }
         });
     });
-    socket.on("close", function close() {
-        if (clientId) {
-            const client = clients.get(clientId);
-            if (client) {
-                openConversations.delete(clientId);
-                closeConversations.delete(clientId);
-                client === null || client === void 0 ? void 0 : client.socket.close();
-            }
-            clients.delete(clientId);
-            console.log("socket connection closed");
-        }
-    });
 });
+function clearMediaSoupConnection(conversationId, transportIds, userId) {
+    try {
+        if (onGoingCall[conversationId]) {
+            if (transportIds) {
+                transportIds.forEach((transportId) => {
+                    {
+                        if (transportId) {
+                            transports[transportId] && transports[transportId].close();
+                            delete transports[transportId];
+                        }
+                    }
+                });
+            }
+            if (onGoingCall[conversationId] && onGoingCall[conversationId][userId]) {
+                console.log("ongoing call user id deleting");
+                delete onGoingCall[conversationId][userId];
+            }
+            const participants = Object.keys(onGoingCall[conversationId]);
+            if (participants.length === 0) {
+                delete onGoingCall[conversationId];
+                if (router[conversationId]) {
+                    router[conversationId].close();
+                    delete router[conversationId];
+                }
+            }
+        }
+        clients.forEach((client) => {
+            if (client.clientId !== userId && client.socket) {
+                client.socket.send(JSON.stringify({
+                    messageType: "leftTheCall",
+                    messageData: {
+                        userId: userId,
+                    },
+                }));
+            }
+        });
+        delete callsInvolvedIn[userId];
+        console.log("ongoing call participants", onGoingCall);
+        console.log("transports", transports);
+        console.log("involved calls: ", callsInvolvedIn);
+        console.log("clients: ", clients);
+    }
+    catch (error) {
+        console.log(error);
+    }
+}
 function createConsume(messageData) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -208,7 +289,7 @@ function createProduce(messageData) {
         try {
             // console.log(messageData.kind);
             console.log("new produce request");
-            console.log("produce requested by: ", messageData.userId);
+            console.log("produce requested by: ", messageData.appData.userId);
             const sendTransport = transports[messageData.appData.transportId];
             const user = yield index_1.default.user.findUnique({
                 where: {
@@ -336,7 +417,10 @@ function connectTransport(messageData) {
         console.log("dtls parameters", messageData.dtlsParameters);
         const transportId = messageData.transportId;
         const dtlsParameters = messageData.dtlsParameters;
+        console.log("transport id: ", transportId);
         const transport = transports[transportId];
+        console.log("tansports: ", transports);
+        console.log("transport: ", transport);
         try {
             // console.log("dtls parameters to connect: ", dtlsParameters);
             yield transport.connect({ dtlsParameters });
@@ -411,7 +495,9 @@ function callInitiated(messageData) {
         // need my number using which i will send rtpcapabilities
         try {
             const conversationId = messageData.conversationId;
+            // if (!router[conversationId]) {
             router[conversationId] = yield createRouter(messageData.callType);
+            // }
             console.log("callinitiated by: ", conversationId);
             const conversationUsers = yield index_1.default.conversation.findUnique({
                 where: {
@@ -445,8 +531,19 @@ function callInitiated(messageData) {
             if (!onGoingCall[conversationId]) {
                 onGoingCall[conversationId] = {};
             }
-            console.log("rtpCapabilities: ", router[conversationId].rtpCapabilities);
+            if (!callsInvolvedIn[initiatorData.user.id]) {
+                callsInvolvedIn[initiatorData.user.id] = {
+                    conversationId: conversationId,
+                    transportIds: [],
+                };
+            }
+            callsInvolvedIn[initiatorData.user.id] = {
+                conversationId: conversationId,
+                transportIds: [],
+            };
             if (clients.has(initiatorData === null || initiatorData === void 0 ? void 0 : initiatorData.user.id)) {
+                console.log("sending router capabilities to:", initiatorData.user.id);
+                console.log("clients: ", clients);
                 const client = clients.get(initiatorData.user.id);
                 client === null || client === void 0 ? void 0 : client.socket.send(JSON.stringify({
                     messageType: "routerCapabilities",
@@ -457,12 +554,16 @@ function callInitiated(messageData) {
             }
             remainingConversationParticipantsIds.map((participantId) => {
                 if (clients.has(participantId)) {
+                    console.log("sending incomincall notification to: ", participantId);
                     const client = clients.get(participantId);
                     client === null || client === void 0 ? void 0 : client.socket.send(JSON.stringify({
                         messageType: "incomingCall",
                         callType: messageData.callType,
                         conversationId: messageData.conversationId,
                     }));
+                }
+                else {
+                    console.log("socket is not there");
                 }
             });
         }
@@ -487,10 +588,18 @@ function sendRtpCapabilities(messageData) {
                 throw new Error("user not found");
             }
             if (!callRouter) {
-                throw new Error("router not found");
+                throw new Error("no active call");
+            }
+            if (!callsInvolvedIn[user.id]) {
+                callsInvolvedIn[user.id] = {
+                    conversationId: messageData.conversationId,
+                    transportIds: [],
+                };
             }
             // console.log("onGoingCall participants before", onGoingCall);
-            onGoingCall[messageData.conversationId][user.id] = {};
+            if (!onGoingCall[messageData.conversationId][user.id]) {
+                onGoingCall[messageData.conversationId][user.id] = {};
+            }
             // console.log("onGoingCall participants after", onGoingCall);
             // console.log("rtp capabilities", cal)
             console.log("rtpCapabilities: ", router[messageData.conversationId].rtpCapabilities);
@@ -540,7 +649,9 @@ function createTransport(messageData) {
             });
             const transportId = transport.id;
             transports[transportId] = transport;
-            console.log("ice candidates: ", transport.iceCandidates);
+            console.log("ongoing call participants: ", onGoingCall[conversationId]);
+            console.log("transports: ", transports);
+            callsInvolvedIn[user.id].transportIds.push(transport.id);
             if (clients.has(user.id)) {
                 const client = clients.get(user.id);
                 console.log(`sending ${messageData.direction}Transport creation info to the client`);

@@ -8,7 +8,7 @@ import { log } from "console";
 import { conversationAtom } from "@/recoil_store/src/atoms/atoms";
 import { SetterOrUpdater } from "recoil";
 
-const device = new mediasoupClient.Device();
+let device: mediasoupClient.types.Device | null = null;
 let conversationId: string;
 let myNumber: string;
 let sendTransport: mediasoupClient.types.Transport<mediasoupClient.types.AppData> | null =
@@ -22,18 +22,25 @@ let participantTracks: {
     [track: string]: MediaStreamTrack;
   };
 } = {};
-
+async function loadDevice(
+  routerRtpCapabilities: mediasoupClient.types.RtpCapabilities
+) {
+  if (!device) {
+    device = new mediasoupClient.Device();
+  }
+  await device.load({ routerRtpCapabilities });
+}
 export function initiateCall(
   typeOfCall: "audio" | "video",
   socket: WebSocket | null,
-  conversationId: string,
+  conversation_id: string,
   myNumber: string
 ) {
   console.log(typeOfCall);
   console.log("call type before assinging", callType);
   callType = typeOfCall;
   console.log("call type after assinging", callType);
-
+  conversationId = conversation_id;
   socket?.send(
     JSON.stringify({
       messageType: "initiatedCall",
@@ -51,6 +58,7 @@ export function acceptIncomingCall(
   myNumber: string
 ) {
   callType = messageData.callType;
+  conversationId = messageData.conversationId;
   socket?.send(
     JSON.stringify({
       messageType: "joinCall",
@@ -72,7 +80,7 @@ export async function requestTransports(
   console.log("rtpCapabilities: ", routerRtpCapabilities);
   console.log(`create ${messageData.transportDirection}Transport first`);
   console.log("mssageData: ", messageData);
-  await device.load({ routerRtpCapabilities });
+  await loadDevice(routerRtpCapabilities);
   conversationId = conversationId;
   myNumber = myNumber;
   if (messageData.sendTransportFirst) {
@@ -135,7 +143,6 @@ export async function requestTransports(
   }
 }
 export async function createSendTransport(
-  setMyStream: SetterOrUpdater<MediaStream | null>,
   messageData: any,
   socket: WebSocket | null,
   userId: string,
@@ -144,12 +151,15 @@ export async function createSendTransport(
   console.log(`create ${messageData.transportDirection}Transport`);
   if (messageData.transportDirection === "send") {
     try {
-      sendTransport = device.createSendTransport({
-        id: messageData.transportId,
-        dtlsParameters: messageData.dtlsParameters,
-        iceCandidates: messageData.iceCandidates,
-        iceParameters: messageData.iceParameters,
-      });
+      sendTransport =
+        device &&
+        device?.createSendTransport({
+          id: messageData.transportId,
+          dtlsParameters: messageData.dtlsParameters,
+          iceCandidates: messageData.iceCandidates,
+          iceParameters: messageData.iceParameters,
+        });
+
       console.log("createsendtransport: ", messageData);
       console.log("ice candidates:", messageData.iceCandidates);
       console.log("transportId on the client: ", sendTransport?.id);
@@ -157,7 +167,7 @@ export async function createSendTransport(
 
       // make the type dynamic
       console.log("Created send transport:", sendTransport);
-      sendTransport.on("connect", ({ dtlsParameters }, callback, errback) => {
+      sendTransport?.on("connect", ({ dtlsParameters }, callback, errback) => {
         console.log("connect transport is triggered", dtlsParameters);
         socket?.send(
           JSON.stringify({
@@ -201,7 +211,7 @@ export async function createSendTransport(
           });
       });
 
-      sendTransport.on("produce", async (parameters, callback, errback) => {
+      sendTransport?.on("produce", async (parameters, callback, errback) => {
         try {
           console.log(
             "onproduce event is triggered and sending createproduce request"
@@ -247,13 +257,13 @@ export async function createSendTransport(
         const videoTrack = stream.getVideoTracks();
         const audioTrack = stream.getAudioTracks();
         console.log("got tracks");
-        setMyStream(stream);
+        // setMyStream(stream);
         // const myVideoStreamElement = document.getElementById(
         //   "myStreamVideoElement"
         // ) as HTMLVideoElement;
-        sendTransport?.produce({ track: audioTrack[0] }).then(() => {
-          sendTransport?.produce({ track: videoTrack[0] });
-        });
+        await sendTransport?.produce({ track: audioTrack[0] });
+        await sendTransport?.produce({ track: videoTrack[0] });
+
         // if (myVideoStreamElement) {
         //   myVideoStreamElement.srcObject = stream;
         //   console.log("sending produce requests");
@@ -264,7 +274,6 @@ export async function createSendTransport(
       } else if (callType === "audio") {
         const stream = await getMediaStream("AUDIO");
         const audioTrack = stream.getAudioTracks();
-        setMyStream(stream);
 
         sendTransport?.produce({ track: audioTrack[0] });
       }
@@ -281,12 +290,14 @@ export async function createRecvTransport(
 ) {
   console.log("creating recv transport");
   try {
-    recvTransport = device.createRecvTransport({
-      id: messageData.transportId,
-      dtlsParameters: messageData.dtlsParameters,
-      iceCandidates: messageData.iceCandidates,
-      iceParameters: messageData.iceParameters,
-    });
+    recvTransport =
+      device &&
+      device.createRecvTransport({
+        id: messageData.transportId,
+        dtlsParameters: messageData.dtlsParameters,
+        iceCandidates: messageData.iceCandidates,
+        iceParameters: messageData.iceParameters,
+      });
     console.log("sending rectransport connect request");
     socket?.send(
       JSON.stringify({
@@ -297,7 +308,7 @@ export async function createRecvTransport(
         },
       })
     );
-    recvTransport.on("connect", ({ dtlsParameters }, callback, errback) => {
+    recvTransport?.on("connect", ({ dtlsParameters }, callback, errback) => {
       console.log("rectransport connect triggered");
       socket?.send(
         JSON.stringify({
@@ -381,7 +392,7 @@ export async function createConsume(
           messageData: {
             produceId: producer.produceId,
             transportId: recvTransport?.id,
-            rtpCapabilities: device.rtpCapabilities,
+            rtpCapabilities: device?.rtpCapabilities,
             conversationId: messageData.conversationId,
             producedUserId: producer.producedUserId,
             userId: userId,
@@ -412,6 +423,7 @@ export async function createConsume(
                 //   participantTracks[messageData.producedUserId] = {};
                 // }
                 // console.log("participants tracks: ", participantTracks);
+                console.log("setting tracks: ", consumeData.track);
                 setRemoteTracks((prevTracks) =>
                   prevTracks
                     ? [
@@ -487,4 +499,36 @@ function createMediaStream(participantId: string) {
     audioElement.autoplay = true;
     audioElement.srcObject = medistream;
   }
+}
+
+export function clearMediaSoupConnection(
+  socket: WebSocket | null,
+  userId: string,
+  conversation_id: string,
+  // setMyStream: SetterOrUpdater<MediaStream | null>,
+  myStream?: MediaStream | null
+) {
+  socket?.send(
+    JSON.stringify({
+      messageType: "callEnded",
+      messageData: {
+        conversationId: conversationId,
+        userId: userId,
+        transportIds: [sendTransport?.id, recvTransport?.id],
+      },
+    })
+  );
+  if (sendTransport) {
+    sendTransport.close();
+    sendTransport = null;
+  }
+
+  if (recvTransport) {
+    recvTransport.close();
+    recvTransport = null;
+  }
+
+  // console.log("after clearing my stream:", myStream);
+  // console.log("tracks after clearing my stream:", myStream?.getTracks());
+  device = null;
 }

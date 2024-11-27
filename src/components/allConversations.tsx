@@ -17,6 +17,7 @@ import SearchContacts from "./searchContacts.";
 import { GroupCreate } from "./groupCreate";
 import { useSendMessage } from "@/utils/webSocketSendMessages";
 import { useWebSocketHandler } from "@/utils/webSocetConnection";
+import Button from "./button";
 
 // todo - notifications
 // todo - add otp based login along with password
@@ -162,6 +163,14 @@ export default function AllConversations(userID: any) {
         </dialog>
 
         <div className="flex flex-col h-full items-start">
+          <div className="p-2 bg-slate-300 justify-center  flex gap-2 border-solid border-black border-2 rounded-md">
+            <button
+              onClick={() => addContactRef.current?.showModal()}
+              className="outline-none flex-1 w-full"
+            >
+              new contact
+            </button>
+          </div>
           <input
             className="flex-none p-1 w-full"
             placeholder="search"
@@ -228,9 +237,9 @@ export default function AllConversations(userID: any) {
             >
               logout
             </button>
-            {/* <button>+</button>
+            <button>+</button>
             <button>profile</button>
-            <button>settings</button> */}
+            <button>settings</button>
           </div>
         </div>
       </div>

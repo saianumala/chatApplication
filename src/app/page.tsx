@@ -16,7 +16,7 @@ export default function Home() {
   console.error("home page rerendered");
   useEffect(() => {
     if (!session || !session.user.userId) {
-      router.push("http://localhost:3000/user/signin");
+      router.push("user/signin");
     }
   }, [session]);
   return (

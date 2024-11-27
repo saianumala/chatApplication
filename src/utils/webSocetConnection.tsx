@@ -44,7 +44,7 @@ function useWebSocketHandler(): WebSocket | null {
 
   const setRemoteTracks = useSetRecoilState(remoteTracksAtom);
   const [callAccepted, setCallAccepted] = useRecoilState(callAcceptedAtom);
-  const setMyStream = useSetRecoilState(myStreamAtom);
+  const [myStream, setMyStream] = useRecoilState(myStreamAtom);
   const [videoCallInitiated, setVideoCallInitiated] = useRecoilState(
     videoCallInitiatedAtom
   );
@@ -183,7 +183,6 @@ function useWebSocketHandler(): WebSocket | null {
             break;
           case "sendTransport":
             await createSendTransport(
-              setMyStream,
               messageData,
               newSocket,
               session?.user?.userId || "",
@@ -222,12 +221,35 @@ function useWebSocketHandler(): WebSocket | null {
               setRemoteTracks
             );
             break;
+          case "leftTheCall": {
+            setRemoteTracks((prevTracks) => {
+              prevTracks &&
+                prevTracks
+                  .filter(
+                    (track) => track.remoteStreamerId === messageData.userID
+                  )
+                  .forEach((track) => track.track.stop());
+
+              return (
+                prevTracks?.filter(
+                  (track) => track.remoteStreamerId !== messageData.userId
+                ) || null
+              );
+            });
+          }
           default:
             break;
         }
       };
       newSocket.onclose = () => {
+        const tracks = myStream?.getTracks();
+        tracks?.forEach((track) => track.stop());
+        setMyStream(null);
         setSelectedConversation(null);
+        setIncomingCall(false);
+        setCallAccepted(false);
+        setVideoCallInitiated(false);
+        setRemoteTracks(null);
         console.log("Connection closed, attempting to reconnect...");
         if (!reconnectInterval.current) {
           reconnectInterval.current = window.setInterval(

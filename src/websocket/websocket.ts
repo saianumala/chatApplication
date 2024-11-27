@@ -4,6 +4,8 @@ import prisma from "../db/prisma/index";
 import * as mediasoup from "mediasoup";
 import { getServerSession } from "next-auth";
 import { Socket } from "dgram";
+import { init } from "next/dist/compiled/@vercel/og/satori";
+import { clear } from "console";
 
 class Client {
   clientId: string;
@@ -17,16 +19,10 @@ let worker: mediasoup.types.Worker<mediasoup.types.AppData>;
 let router: {
   [conversationId: string]: mediasoup.types.Router<mediasoup.types.AppData>;
 } = {};
-
-// let producers: {
-//   [conversationId: string]: {
-//     [produceId:string]: mediasoup.types.Producer<mediasoup.types.AppData>;
-//   }
-// } = {};
-
-let consumers: {
-  [conversationId: string]: {
-    [consumerId: string]: mediasoup.types.Consumer<mediasoup.types.AppData>;
+let callsInvolvedIn: {
+  [userId: string]: {
+    conversationId: string;
+    transportIds: string[];
   };
 } = {};
 
@@ -45,11 +41,11 @@ let onGoingCall: {
 } = {};
 
 const server = http.createServer((request, response) => {
-  console.log("wwebsocket server");
+  console.log("websocket server");
   response.end("hello");
 });
 
-server.listen(8080, () => {
+server.listen(8080, "0.0.0.0", () => {
   console.log("server is running");
 });
 
@@ -75,9 +71,9 @@ const clients = new Map<string, Client>();
 const openConversations = new Map<string, Set<string>>();
 const closeConversations = new Map<string, Set<string>>();
 
-wss.on("connection", function connection(socket, req) {
+wss.on("connection", async function connection(socket, req) {
   console.log("websocket connected");
-
+  console.log("websocket ready state: ", socket.readyState);
   const connectionUrl = new URL(req.url!, `http://${req.headers.host}`);
   const clientId = connectionUrl.searchParams.get("clientId");
 
@@ -88,12 +84,20 @@ wss.on("connection", function connection(socket, req) {
     return;
   }
   const client = clients.get(clientId);
+  console.log("client:", clients.has(clientId));
 
   if (!client || !client.socket) {
+    console.log("creating new client and setting them to the map");
     const client = new Client(clientId, socket);
 
-    clients.set(clientId, client);
+    clientId && clients.set(clientId, client);
+  } else {
+    console.log("client already present proceeding with the existing client");
   }
+  setInterval(() => {
+    console.log("websocket state: ", socket.readyState);
+  }, 5000);
+  // let count =1
 
   socket.on("error", (error) => {
     console.error(error);
@@ -154,6 +158,15 @@ wss.on("connection", function connection(socket, req) {
           break;
         case "getProducers":
           sendProducers(conversationData.messageData);
+          break;
+        case "callEnded":
+          console.log("call ended data: ", conversationData.messageData);
+          clearMediaSoupConnection(
+            conversationData.messageData.conversationId,
+            conversationData.messageData.transportIds,
+            conversationData.messageData.userId
+          );
+          break;
         default:
           break;
       }
@@ -163,18 +176,98 @@ wss.on("connection", function connection(socket, req) {
   });
 
   socket.on("close", function close() {
+    console.log("clientId", clientId);
     if (clientId) {
       const client = clients.get(clientId);
+
       if (client) {
-        openConversations.delete(clientId);
-        closeConversations.delete(clientId);
-        client?.socket.close();
+        console.log("cleaning client");
+
+        // try {
+        //   // onGoingCall[clientId]
+        //   console.log("callsInvonvedIn: ", callsInvolvedIn[client.clientId]);
+        //   if (callsInvolvedIn) {
+        //     const conversationId =
+        //       callsInvolvedIn[client.clientId]?.conversationId;
+        //     const transportIds = callsInvolvedIn[client.clientId]?.transportIds;
+        //     if (conversationId) {
+        //       clearMediaSoupConnection(conversationId, transportIds, clientId);
+        //     }
+        //   }
+        //   openConversations.delete(clientId);
+        //   closeConversations.delete(clientId);
+        // } catch (error) {
+        //   console.error(error);
+        // }
+        if (client.socket.readyState === WebSocket.OPEN) {
+          console.log(
+            "closing the socket and deleting the client from client map"
+          );
+          client?.socket.close();
+          clients.delete(clientId);
+        }
+        console.log("is client present", clients.has(clientId));
+        clients.delete(clientId);
+        console.log("after deleting client: ", clients.has(clientId));
       }
-      clients.delete(clientId);
+      console.log("websocket state in close event: ", socket.readyState);
       console.log("socket connection closed");
     }
   });
 });
+function clearMediaSoupConnection(
+  conversationId: string,
+  transportIds: string[],
+  userId: string
+) {
+  try {
+    if (onGoingCall[conversationId]) {
+      if (transportIds) {
+        transportIds.forEach((transportId) => {
+          {
+            if (transportId) {
+              transports[transportId] && transports[transportId].close();
+              delete transports[transportId];
+            }
+          }
+        });
+      }
+
+      if (onGoingCall[conversationId] && onGoingCall[conversationId][userId]) {
+        console.log("ongoing call user id deleting");
+        delete onGoingCall[conversationId][userId];
+      }
+      const participants = Object.keys(onGoingCall[conversationId]);
+
+      if (participants.length === 0) {
+        delete onGoingCall[conversationId];
+        if (router[conversationId]) {
+          router[conversationId].close();
+          delete router[conversationId];
+        }
+      }
+    }
+    clients.forEach((client) => {
+      if (client.clientId !== userId && client.socket) {
+        client.socket.send(
+          JSON.stringify({
+            messageType: "leftTheCall",
+            messageData: {
+              userId: userId,
+            },
+          })
+        );
+      }
+    });
+    delete callsInvolvedIn[userId];
+    console.log("ongoing call participants", onGoingCall);
+    console.log("transports", transports);
+    console.log("involved calls: ", callsInvolvedIn);
+    console.log("clients: ", clients);
+  } catch (error) {
+    console.log(error);
+  }
+}
 
 async function createConsume(messageData: any) {
   try {
@@ -215,7 +308,7 @@ async function createProduce(messageData: any) {
   try {
     // console.log(messageData.kind);
     console.log("new produce request");
-    console.log("produce requested by: ", messageData.userId);
+    console.log("produce requested by: ", messageData.appData.userId);
     const sendTransport = transports[messageData.appData.transportId];
     const user = await prisma.user.findUnique({
       where: {
@@ -365,7 +458,10 @@ async function connectTransport(messageData: any) {
   console.log("dtls parameters", messageData.dtlsParameters);
   const transportId = messageData.transportId;
   const dtlsParameters = messageData.dtlsParameters;
+  console.log("transport id: ", transportId);
   const transport = transports[transportId];
+  console.log("tansports: ", transports);
+  console.log("transport: ", transport);
   try {
     // console.log("dtls parameters to connect: ", dtlsParameters);
     await transport.connect({ dtlsParameters });
@@ -444,7 +540,9 @@ async function callInitiated(messageData: any) {
 
   try {
     const conversationId: string = messageData.conversationId;
+    // if (!router[conversationId]) {
     router[conversationId] = await createRouter(messageData.callType);
+    // }
     console.log("callinitiated by: ", conversationId);
     const conversationUsers = await prisma.conversation.findUnique({
       where: {
@@ -482,8 +580,22 @@ async function callInitiated(messageData: any) {
     if (!onGoingCall[conversationId]) {
       onGoingCall[conversationId] = {};
     }
-    console.log("rtpCapabilities: ", router[conversationId].rtpCapabilities);
+
+    if (!callsInvolvedIn[initiatorData.user.id]) {
+      callsInvolvedIn[initiatorData.user.id] = {
+        conversationId: conversationId,
+        transportIds: [],
+      };
+    }
+
+    callsInvolvedIn[initiatorData.user.id] = {
+      conversationId: conversationId,
+      transportIds: [],
+    };
+
     if (clients.has(initiatorData?.user.id)) {
+      console.log("sending router capabilities to:", initiatorData.user.id);
+      console.log("clients: ", clients);
       const client = clients.get(initiatorData.user.id);
       client?.socket.send(
         JSON.stringify({
@@ -496,6 +608,8 @@ async function callInitiated(messageData: any) {
     }
     remainingConversationParticipantsIds.map((participantId) => {
       if (clients.has(participantId)) {
+        console.log("sending incomincall notification to: ", participantId);
+
         const client = clients.get(participantId);
         client?.socket.send(
           JSON.stringify({
@@ -504,6 +618,8 @@ async function callInitiated(messageData: any) {
             conversationId: messageData.conversationId,
           })
         );
+      } else {
+        console.log("socket is not there");
       }
     });
   } catch (error: any) {
@@ -526,10 +642,18 @@ async function sendRtpCapabilities(messageData: any) {
       throw new Error("user not found");
     }
     if (!callRouter) {
-      throw new Error("router not found");
+      throw new Error("no active call");
+    }
+    if (!callsInvolvedIn[user.id]) {
+      callsInvolvedIn[user.id] = {
+        conversationId: messageData.conversationId,
+        transportIds: [],
+      };
     }
     // console.log("onGoingCall participants before", onGoingCall);
-    onGoingCall[messageData.conversationId][user.id] = {};
+    if (!onGoingCall[messageData.conversationId][user.id]) {
+      onGoingCall[messageData.conversationId][user.id] = {};
+    }
     // console.log("onGoingCall participants after", onGoingCall);
     // console.log("rtp capabilities", cal)
     console.log(
@@ -586,7 +710,9 @@ async function createTransport(messageData: any) {
 
     const transportId = transport.id;
     transports[transportId] = transport;
-    console.log("ice candidates: ", transport.iceCandidates);
+    console.log("ongoing call participants: ", onGoingCall[conversationId]);
+    console.log("transports: ", transports);
+    callsInvolvedIn[user.id].transportIds.push(transport.id);
     if (clients.has(user.id)) {
       const client = clients.get(user.id);
       console.log(

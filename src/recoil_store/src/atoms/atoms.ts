@@ -186,7 +186,7 @@ export const remoteMediaStreamsSelector = selector({
       { audioTrack?: MediaStreamTrack; videoTrack?: MediaStreamTrack }
     >();
 
-    remoteTracks.map((remoteTrack) => {
+    remoteTracks.forEach((remoteTrack) => {
       if (!streamMap.has(remoteTrack.remoteStreamerId)) {
         streamMap.set(remoteTrack.remoteStreamerId, {});
       }
@@ -208,20 +208,16 @@ export const remoteMediaStreamsSelector = selector({
       .map(([remoteStreamerId, { audioTrack, videoTrack }]) => {
         const mediaStream = new MediaStream();
         console.log("callType: ", callType);
-        if (callType === "video") {
+        if (callType === "video" && audioTrack && videoTrack) {
           console.log("adding video and audio tracks");
-          if (audioTrack && videoTrack) {
-            mediaStream.addTrack(audioTrack);
-            mediaStream.addTrack(videoTrack);
-            return { remoteStreamerId, mediaStream };
-          }
-        } else if (callType === "audio") {
+          mediaStream.addTrack(audioTrack);
+          mediaStream.addTrack(videoTrack);
+          return { remoteStreamerId, mediaStream };
+        } else if (callType === "audio" && audioTrack) {
           console.log("adding audio track");
 
-          if (audioTrack && !videoTrack) {
-            mediaStream.addTrack(audioTrack);
-            return { remoteStreamerId, mediaStream };
-          }
+          mediaStream.addTrack(audioTrack);
+          return { remoteStreamerId, mediaStream };
         }
 
         return null;

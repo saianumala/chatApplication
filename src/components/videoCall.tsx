@@ -1,19 +1,22 @@
 import {
   callAcceptedAtom,
+  conversationAtom,
   incomingCallAtom,
   incomingCallMessageDataAtom,
   initiatedCallAtom,
   myStreamAtom,
   remoteMediaStreamsSelector,
   remoteTracksAtom,
+  videoCallAtom,
   videoCallInitiatedAtom,
 } from "@/recoil_store/src/atoms/atoms";
 import { getMediaStream } from "@/utils/getMediaStream";
 import { acceptIncomingCall } from "@/utils/mediaSoupConnection";
 import { useWebSocketHandler } from "@/utils/webSocetConnection";
 import { useSession } from "next-auth/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
+import { clearMediaSoupConnection } from "@/utils/mediaSoupConnection";
 
 export default function VideoCall() {
   const [incomingCall, setIncomingCall] = useRecoilState(incomingCallAtom);
@@ -21,20 +24,46 @@ export default function VideoCall() {
   const [videoCallInitiated, setVideoCallInitiated] = useRecoilState(
     videoCallInitiatedAtom
   );
+  const [videoCall, setVideoCall] = useRecoilState(videoCallAtom);
+  const [callEnded, setCallEnded] = useState(false);
   const streamerMediaStreams = useRecoilValue(remoteMediaStreamsSelector);
-  const myStream = useRecoilValue(myStreamAtom);
+  const [myStream, setMyStream] = useRecoilState(myStreamAtom);
   const remoteStreamTracks = useRecoilValue(remoteTracksAtom);
   const { data: session } = useSession();
   const socket = useWebSocketHandler();
+  const selectedConversation = useRecoilValue(conversationAtom);
   const incomingCallMessageData = useRecoilValue(incomingCallMessageDataAtom);
   useEffect(() => {
     const myStreamVideoElement = document.getElementById(
       "myStreamVideoElement"
     ) as HTMLVideoElement;
-    if (myStreamVideoElement && myStreamVideoElement.srcObject === null) {
+
+    console.log("video call: ", videoCall);
+    if (!callEnded && videoCall) {
       getMediaStream("VIDEO").then((stream) => {
-        myStreamVideoElement.srcObject = stream;
+        if (
+          stream &&
+          myStreamVideoElement &&
+          myStreamVideoElement?.srcObject === null
+        ) {
+          myStreamVideoElement.srcObject = stream;
+        }
+        setMyStream(stream);
       });
+    }
+    if (callEnded) {
+      console.log("clearing tracks");
+      // const tracks = myStream?.getTracks();
+      // tracks && tracks.map((tracks) => tracks.stop());
+      // setMyStream(null);
+      setMyStream((mediastream) => {
+        console.log("clearing tracks: ", mediastream);
+        mediastream && mediastream?.getTracks().forEach((track) => track.stop);
+        console.log("after clearing tracks: ", mediastream?.getTracks());
+
+        return null;
+      });
+      setVideoCall(false);
     }
     if (remoteStreamTracks && remoteStreamTracks.length > 0) {
       if (videoCallInitiated) {
@@ -47,11 +76,11 @@ export default function VideoCall() {
         const myStreamVideoElement = document.getElementById(
           "myStreamVideoElement"
         ) as HTMLVideoElement;
-        if (myStreamVideoElement && myStreamVideoElement.srcObject === null) {
-          getMediaStream("VIDEO").then((stream) => {
-            myStreamVideoElement.srcObject = stream;
-          });
-        }
+        // if (myStreamVideoElement && myStreamVideoElement.srcObject === null) {
+        //   getMediaStream("VIDEO").then((stream) => {
+        //     myStreamVideoElement.srcObject = stream;
+        //   });
+        // }
         streamerMediaStreams?.map((remoteMediastream) => {
           const videoElement = document.getElementById(
             remoteMediastream.remoteStreamerId
@@ -77,7 +106,13 @@ export default function VideoCall() {
         });
       }
     }
-  }, [remoteStreamTracks, videoCallInitiated, incomingCall, callAccepted]);
+  }, [
+    remoteStreamTracks,
+    videoCallInitiated,
+    incomingCall,
+    callAccepted,
+    callEnded,
+  ]);
 
   return (
     <>
@@ -95,10 +130,16 @@ export default function VideoCall() {
             ></video>
             <div className="absolute transform -translate-x-1/2 left-2/4 bottom-1/4">
               <button
-                // onClick={() =>
-                //   // clear everything
-                //   // setCallEnded()
-                // }
+                onClick={() => {
+                  setVideoCallInitiated(false);
+                  clearMediaSoupConnection(
+                    socket,
+                    session?.user.userId || "",
+                    selectedConversation?.conversation.conversation_id || ""
+                    // setMyStream
+                  );
+                  setCallEnded(true);
+                }}
                 className="bg-red-700 p-2 rounded-lg"
               >
                 end
@@ -121,11 +162,13 @@ export default function VideoCall() {
             <div className="absolute bottom-1 left-1/2 bg-gray-300 transform -translate-x-1/2 z-10">
               <button
                 onClick={() => {
+                  setCallEnded(false);
                   acceptIncomingCall(
                     incomingCallMessageData,
                     socket,
                     session?.user.mobileNumber || ""
                   );
+
                   setIncomingCall(false);
                   setCallAccepted(true);
                 }}
@@ -134,7 +177,15 @@ export default function VideoCall() {
                 accept
               </button>
               <button
-                onClick={() => setVideoCallInitiated(false)}
+                onClick={() => {
+                  // clearMediaSoupConnection(socket);
+                  setIncomingCall(false);
+                  setCallEnded(true);
+                  // setMyStream((prevTracks) => {
+                  //   prevTracks?.getTracks().forEach((track) => track.stop());
+                  //   return null;
+                  // });
+                }}
                 className="bg-red-700 p-2 m-2"
               >
                 decline
@@ -163,7 +214,21 @@ export default function VideoCall() {
             ></div>
             <div className="absolute transform -translate-x-1/2 left-2/4 bottom-1/4">
               <button
-                onClick={() => setVideoCallInitiated(false)}
+                onClick={() => {
+                  clearMediaSoupConnection(
+                    socket,
+                    session?.user.userId || "",
+                    selectedConversation?.conversation.conversation_id || ""
+                    // setMyStream
+                  );
+                  setCallAccepted(false);
+                  setCallEnded(true);
+
+                  // console.log(
+                  //   "myStream after clearing everything is:",
+                  //   myStream
+                  // );
+                }}
                 className="bg-red-700 p-2 rounded-lg"
               >
                 end

@@ -70,7 +70,7 @@ function SignInComponent() {
               });
 
               if (res?.ok) {
-                router.push("/");
+                router.push(`${process.env.NEXTAUTH_URL}`);
               } else {
                 setsigninError((prev) => !prev);
 
