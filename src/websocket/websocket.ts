@@ -576,7 +576,14 @@ async function callInitiated(messageData: any) {
             };
           }) => participant.user.id !== initiatorData?.user.id
         )
-        .map((participant) => participant.user.id);
+        .map(
+          (participant: {
+            participantNumber: string;
+            user: {
+              id: string;
+            };
+          }) => participant.user.id
+        );
 
     if (!onGoingCall[conversationId]) {
       onGoingCall[conversationId] = {};
