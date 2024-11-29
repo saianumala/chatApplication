@@ -90,26 +90,30 @@ export default function VideoCall() {
         // }
         console.log("using stream:", myStream);
         streamerMediaStreams?.map((remoteMediastream) => {
-          const videoElement = document.getElementById(
-            remoteMediastream.remoteStreamerId
-          ) as HTMLVideoElement;
-          if (!videoElement) {
-            console.log("remoteMediastream ", streamerMediaStreams.length);
-            const remoteVideoElement = document.createElement("video");
-            remoteVideoElement.autoplay = true;
-            remoteVideoElement.id = remoteMediastream.remoteStreamerId;
-            remoteVideoElement.style.width = "400px";
-            remoteVideoElement.style.height = "400px";
-            const remoteVideoDiv = document.getElementById(
-              "remoteVideoDiv"
-            ) as HTMLDivElement;
-            if (remoteVideoElement.srcObject === null) {
-              remoteVideoElement.srcObject = remoteMediastream.mediaStream;
+          if (remoteMediastream) {
+            const videoElement = document.getElementById(
+              remoteMediastream.remoteStreamerId
+            ) as HTMLVideoElement;
+            if (!videoElement) {
+              console.log("remoteMediastream ", streamerMediaStreams.length);
+              const remoteVideoElement = document.createElement("video");
+              remoteVideoElement.autoplay = true;
+              remoteVideoElement.id = remoteMediastream.remoteStreamerId;
+              remoteVideoElement.style.width = "400px";
+              remoteVideoElement.style.height = "400px";
+              const remoteVideoDiv = document.getElementById(
+                "remoteVideoDiv"
+              ) as HTMLDivElement;
+              if (remoteVideoElement.srcObject === null) {
+                remoteVideoElement.srcObject = remoteMediastream.mediaStream;
+              }
+              console.log("remoteMediaStream: ", remoteMediastream);
+              console.log("remoteVideoElement", remoteVideoElement);
+              console.log("remoteVideoDiv", remoteVideoDiv);
+              remoteVideoDiv.appendChild(remoteVideoElement);
             }
-            console.log("remoteMediaStream: ", remoteMediastream);
-            console.log("remoteVideoElement", remoteVideoElement);
-            console.log("remoteVideoDiv", remoteVideoDiv);
-            remoteVideoDiv.appendChild(remoteVideoElement);
+          } else {
+            console.log("remote mediastream not found");
           }
         });
       }
