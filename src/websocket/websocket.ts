@@ -976,7 +976,11 @@ async function sendMessage(
       },
     });
 
-    const participants = messageData.conversation.conversationParticipants;
+    const participants: {
+      user: {
+        id: string;
+      };
+    }[] = messageData.conversation.conversationParticipants;
     const readStatusData = participants
       .filter(
         (participant) => participant.user.id !== conversationData.senderId
