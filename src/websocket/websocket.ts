@@ -558,6 +558,7 @@ async function callInitiated(messageData: any) {
       throw new Error("no conversation exists with this id");
     }
     const initiatorData = conversationUsers.conversationParticipants.find(
+      //@ts-ignore
       (participant) => {
         return participant.participantNumber === messageData.myNumber;
       }
