@@ -1,6 +1,5 @@
 "use client";
 import { useWebSocketHandler } from "./webSocetConnection";
-import { useEffect } from "react";
 
 export function useSendMessage() {
   const socket = useWebSocketHandler();

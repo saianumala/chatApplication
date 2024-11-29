@@ -2,22 +2,17 @@
 import {
   conversationAtom,
   messagesAtom,
-  selectedContactAtom,
-  socketAtom,
   messageAtom,
   incomingCallAtom,
-  callAcceptedAtom,
-  initiatedCallAtom,
   videoCallInitiatedAtom,
   audioCallInitiatedAtom,
   videoCallAtom,
   audioCallAtom,
   callTypeAtom,
 } from "@/recoil_store/src/atoms/atoms";
-import { getMediaStream } from "@/utils/getMediaStream";
 import { useSendMessage } from "@/utils/webSocketSendMessages";
 import { useSession } from "next-auth/react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 
 import { useWebSocketHandler } from "@/utils/webSocetConnection";

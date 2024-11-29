@@ -96,10 +96,14 @@ wss.on("connection", function connection(socket, req) {
         else {
             console.log("client already present proceeding with the existing client");
         }
-        setInterval(() => {
-            console.log("websocket state: ", socket.readyState);
-        }, 5000);
-        // let count =1
+        // setInterval(() => {
+        //   clients.forEach((client) => {
+        //     console.log("client", client.clientId);
+        //     console.log("client readystate", client.socket.readyState);
+        //   });
+        //   // console.log("websocket state: ", socket.readyState);
+        // }, 5000);
+        let count = 1;
         socket.on("error", (error) => {
             console.error(error);
         });
@@ -169,32 +173,28 @@ wss.on("connection", function connection(socket, req) {
             });
         });
         socket.on("close", function close() {
+            var _a, _b;
             console.log("clientId", clientId);
             if (clientId) {
                 const client = clients.get(clientId);
                 if (client) {
                     console.log("cleaning client");
-                    // try {
-                    //   // onGoingCall[clientId]
-                    //   console.log("callsInvonvedIn: ", callsInvolvedIn[client.clientId]);
-                    //   if (callsInvolvedIn) {
-                    //     const conversationId =
-                    //       callsInvolvedIn[client.clientId]?.conversationId;
-                    //     const transportIds = callsInvolvedIn[client.clientId]?.transportIds;
-                    //     if (conversationId) {
-                    //       clearMediaSoupConnection(conversationId, transportIds, clientId);
-                    //     }
-                    //   }
-                    //   openConversations.delete(clientId);
-                    //   closeConversations.delete(clientId);
-                    // } catch (error) {
-                    //   console.error(error);
-                    // }
-                    if (client.socket.readyState === ws_1.WebSocket.OPEN) {
-                        console.log("closing the socket and deleting the client from client map");
-                        client === null || client === void 0 ? void 0 : client.socket.close();
-                        clients.delete(clientId);
+                    try {
+                        console.log("callsInvonvedIn: ", callsInvolvedIn[client.clientId]);
+                        if (callsInvolvedIn) {
+                            const conversationId = (_a = callsInvolvedIn[client.clientId]) === null || _a === void 0 ? void 0 : _a.conversationId;
+                            const transportIds = (_b = callsInvolvedIn[client.clientId]) === null || _b === void 0 ? void 0 : _b.transportIds;
+                            if (conversationId) {
+                                clearMediaSoupConnection(conversationId, transportIds, clientId);
+                            }
+                        }
+                        openConversations.delete(clientId);
+                        closeConversations.delete(clientId);
                     }
+                    catch (error) {
+                        console.error(error);
+                    }
+                    // socket.close();
                     console.log("is client present", clients.has(clientId));
                     clients.delete(clientId);
                     console.log("after deleting client: ", clients.has(clientId));

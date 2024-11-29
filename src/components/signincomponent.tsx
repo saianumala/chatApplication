@@ -1,14 +1,10 @@
 "use client";
-import { SignInResponse, signIn, useSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import Button from "./button";
 import { userNameAtom, passwordAtom } from "@/recoil_store/src/atoms/userAtoms";
-import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
-// import { isLoggedInAtom } from "@repo/recoil_store/userAtom";
-// import { useState } from "react";
-import {
-  errorMessageAtom,
-  signinErrorMessageAtom,
-} from "@/recoil_store/src/atoms/errorAtom";
+import { useRecoilState } from "recoil";
+
+import { signinErrorMessageAtom } from "@/recoil_store/src/atoms/errorAtom";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 

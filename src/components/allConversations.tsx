@@ -1,12 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
+import { useRecoilState, useSetRecoilState } from "recoil";
 import {
   conversationAtom,
   conversationsAtom,
   messagesAtom,
-  socketAtom,
 } from "@/recoil_store/src/atoms/atoms";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -17,7 +16,6 @@ import SearchContacts from "./searchContacts.";
 import { GroupCreate } from "./groupCreate";
 import { useSendMessage } from "@/utils/webSocketSendMessages";
 import { useWebSocketHandler } from "@/utils/webSocetConnection";
-import Button from "./button";
 
 // todo - notifications
 // todo - add otp based login along with password
@@ -162,14 +160,32 @@ export default function AllConversations(userID: any) {
           />
         </dialog>
 
-        <div className="flex flex-col h-full items-start">
-          <div className="p-2 bg-slate-300 justify-center  flex gap-2 border-solid border-black border-2 rounded-md">
+        <div className="flex w-full flex-col h-full items-start">
+          <div className="justify-between w-full flex gap-2">
             <button
+              title="add Contact"
               onClick={() => addContactRef.current?.showModal()}
-              className="outline-none flex-1 w-full"
+              className=""
             >
-              new contact
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="24px"
+                viewBox="0 -960 960 960"
+                color="black"
+                width="24px"
+                fill="#e8eaed"
+                className=""
+              >
+                <path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z" />
+              </svg>
             </button>
+            <button
+              title="create group"
+              onClick={() => groupCreateRef.current?.showModal()}
+            >
+              CG
+            </button>
+            <button onClick={() => contactsRef.current?.showModal()}>C</button>
           </div>
           <input
             className="flex-none p-1 w-full"

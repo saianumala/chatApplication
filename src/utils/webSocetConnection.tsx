@@ -15,11 +15,10 @@ import {
 } from "@/recoil_store/src/atoms/atoms";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
+import { useRecoilState, useSetRecoilState } from "recoil";
 
 import { useRef } from "react";
 // import { peerConnection } from "./webRtcConnection";
-import { useSendMessage } from "./webSocketSendMessages";
 import {
   createConsume,
   createRecvTransport,

@@ -1,11 +1,5 @@
-import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import * as mediasoupClient from "mediasoup-client";
-import { RtpCapabilities } from "mediasoup-client/lib/RtpParameters";
-import { getServerSession } from "next-auth";
-import { send } from "process";
 import { getMediaStream } from "./getMediaStream";
-import { log } from "console";
-import { conversationAtom } from "@/recoil_store/src/atoms/atoms";
 import { SetterOrUpdater } from "recoil";
 
 let device: mediasoupClient.types.Device | null = null;
@@ -16,12 +10,13 @@ let sendTransport: mediasoupClient.types.Transport<mediasoupClient.types.AppData
 let recvTransport: mediasoupClient.types.Transport<mediasoupClient.types.AppData> | null =
   null;
 let callType: string;
-
-let participantTracks: {
-  [participantId: string]: {
-    [track: string]: MediaStreamTrack;
-  };
-} = {};
+let producers: mediasoupClient.types.Producer<mediasoupClient.types.AppData>[] =
+  [];
+// let participantTracks: {
+//   [participantId: string]: {
+//     [track: string]: MediaStreamTrack;
+//   };
+// } = {};
 async function loadDevice(
   routerRtpCapabilities: mediasoupClient.types.RtpCapabilities
 ) {
@@ -261,9 +256,14 @@ export async function createSendTransport(
         // const myVideoStreamElement = document.getElementById(
         //   "myStreamVideoElement"
         // ) as HTMLVideoElement;
-        await sendTransport?.produce({ track: audioTrack[0] });
-        await sendTransport?.produce({ track: videoTrack[0] });
-
+        const audioProducer = await sendTransport?.produce({
+          track: audioTrack[0],
+        });
+        const videoProducer = await sendTransport?.produce({
+          track: videoTrack[0],
+        });
+        audioProducer && producers.push(audioProducer);
+        videoProducer && producers.push(videoProducer);
         // if (myVideoStreamElement) {
         //   myVideoStreamElement.srcObject = stream;
         //   console.log("sending produce requests");
@@ -422,7 +422,6 @@ export async function createConsume(
                 // if (!participantTracks[messageData.producedUserId]) {
                 //   participantTracks[messageData.producedUserId] = {};
                 // }
-                // console.log("participants tracks: ", participantTracks);
                 console.log("setting tracks: ", consumeData.track);
                 setRemoteTracks((prevTracks) =>
                   prevTracks
@@ -460,46 +459,46 @@ export async function createConsume(
   }
 }
 
-function createMediaStream(participantId: string) {
-  const { audioTrack, videoTrack } = participantTracks[participantId];
+// function createMediaStream(participantId: string) {
+//   const { audioTrack, videoTrack } = participantTracks[participantId];
 
-  console.log("participants tracks: ", participantTracks);
-  if (callType === "video") {
-    if (!audioTrack || !videoTrack) {
-      return;
-    }
-    const mediastream = new MediaStream();
-    mediastream.addTrack(audioTrack);
-    mediastream.addTrack(videoTrack);
+//   console.log("participants tracks: ", participantTracks);
+//   if (callType === "video") {
+//     if (!audioTrack || !videoTrack) {
+//       return;
+//     }
+//     const mediastream = new MediaStream();
+//     mediastream.addTrack(audioTrack);
+//     mediastream.addTrack(videoTrack);
 
-    // const remoteVideoDiv = document.getElementById(
-    //   "remoteVideoDiv"
-    // ) as HTMLDivElement;
+//     // const remoteVideoDiv = document.getElementById(
+//     //   "remoteVideoDiv"
+//     // ) as HTMLDivElement;
 
-    // const videoElement = document.createElement("video");
-    // videoElement.id = `${participantId}-stream`;
-    // videoElement.autoplay = true;
-    // videoElement.playsInline = true;
-    // videoElement.muted = true;
-    // videoElement.srcObject = mediastream;
-    // videoElement.style.border = "black 2px solid";
-    // videoElement.srcObject = mediastream;
+//     // const videoElement = document.createElement("video");
+//     // videoElement.id = `${participantId}-stream`;
+//     // videoElement.autoplay = true;
+//     // videoElement.playsInline = true;
+//     // videoElement.muted = true;
+//     // videoElement.srcObject = mediastream;
+//     // videoElement.style.border = "black 2px solid";
+//     // videoElement.srcObject = mediastream;
 
-    // videoElement
-    //   .play()
-    //   .catch((err) => console.error("Video playback failed:", err));
-    // remoteVideoDiv?.appendChild(videoElement);
-  } else if (callType === "audio") {
-    if (!audioTrack) {
-      return;
-    }
-    const medistream = new MediaStream([audioTrack]);
-    const audioElement = document.createElement("audio");
-    audioElement.id = `${participantId}-stream`;
-    audioElement.autoplay = true;
-    audioElement.srcObject = medistream;
-  }
-}
+//     // videoElement
+//     //   .play()
+//     //   .catch((err) => console.error("Video playback failed:", err));
+//     // remoteVideoDiv?.appendChild(videoElement);
+//   } else if (callType === "audio") {
+//     if (!audioTrack) {
+//       return;
+//     }
+//     const medistream = new MediaStream([audioTrack]);
+//     const audioElement = document.createElement("audio");
+//     audioElement.id = `${participantId}-stream`;
+//     audioElement.autoplay = true;
+//     audioElement.srcObject = medistream;
+//   }
+// }
 
 export function clearMediaSoupConnection(
   socket: WebSocket | null,
@@ -518,12 +517,16 @@ export function clearMediaSoupConnection(
       },
     })
   );
+  producers.forEach((producer) => producer.close());
   if (sendTransport) {
+    console.log("closing sendTransport");
     sendTransport.close();
     sendTransport = null;
   }
 
   if (recvTransport) {
+    console.log("closing recvTransport");
+
     recvTransport.close();
     recvTransport = null;
   }

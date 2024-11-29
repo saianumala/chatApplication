@@ -1,7 +1,4 @@
 import { MutableRefObject, useEffect, useState } from "react";
-import { AllContacts } from "./allcontacts";
-import { useRecoilState, useRecoilValue } from "recoil";
-import { conversationParticipantsAtom } from "@/recoil_store/src/atoms/atoms";
 
 export function GroupCreate({
   groupCreateRef,
