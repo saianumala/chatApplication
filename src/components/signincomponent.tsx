@@ -76,7 +76,7 @@ function SignInComponent() {
           />
         </div>
         <h1>
-          don't have any account{" "}
+          don&apos;t have any account
           <button
             type="button"
             className="underline"

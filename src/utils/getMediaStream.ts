@@ -1,6 +1,3 @@
-import { Html } from "next/document";
-import { list } from "postcss";
-
 export async function getMediaStream(type: "VIDEO" | "AUDIO") {
   const mediaConstraints: MediaStreamConstraints = {};
 
