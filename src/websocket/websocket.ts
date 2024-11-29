@@ -566,7 +566,7 @@ async function callInitiated(messageData: any) {
     if (!initiatorData) {
       throw new Error("initiator data not found");
     }
-    const remainingConversationParticipantsIds =
+    const remainingConversationParticipantsIds: string[] =
       conversationUsers.conversationParticipants
         .filter(
           (participant: {
