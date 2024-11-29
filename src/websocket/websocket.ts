@@ -568,7 +568,14 @@ async function callInitiated(messageData: any) {
     }
     const remainingConversationParticipantsIds =
       conversationUsers.conversationParticipants
-        .filter((participant) => participant.user.id !== initiatorData?.user.id)
+        .filter(
+          (participant: {
+            participantNumber: string;
+            user: {
+              id: string;
+            };
+          }) => participant.user.id !== initiatorData?.user.id
+        )
         .map((participant) => participant.user.id);
 
     if (!onGoingCall[conversationId]) {
