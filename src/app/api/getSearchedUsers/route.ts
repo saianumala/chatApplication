@@ -52,11 +52,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ data: result });
   } catch (error) {
     // console.log("error", error);
-<<<<<<< HEAD
-    console.log("database call failed", error);
-=======
-    console.log("database call failed",error);
->>>>>>> 77892df (updated gitignore)
+    console.log("database call failed", error)
     return NextResponse.json(
       { message: "database call failed" },
       { status: 400 }
