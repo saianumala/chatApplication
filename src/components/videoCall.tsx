@@ -16,6 +16,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRecoilState, useRecoilValue } from "recoil";
 import { clearMediaSoupConnection } from "@/utils/mediaSoupConnection";
+import { log } from "console";
 
 export default function VideoCall() {
   const [incomingCall, setIncomingCall] = useRecoilState(incomingCallAtom);
@@ -27,47 +28,41 @@ export default function VideoCall() {
   const [callEnded, setCallEnded] = useState(false);
   const streamerMediaStreams = useRecoilValue(remoteMediaStreamsSelector);
   const [myStream, setMyStream] = useRecoilState(myStreamAtom);
-  const remoteStreamTracks = useRecoilValue(remoteTracksAtom);
+  const [remoteStreamTracks, setRemoteStreamTracks] =
+    useRecoilState(remoteTracksAtom);
   const { data: session } = useSession();
   const socket = useWebSocketHandler();
   const selectedConversation = useRecoilValue(conversationAtom);
   const incomingCallMessageData = useRecoilValue(incomingCallMessageDataAtom);
   useEffect(() => {
-    const myStreamVideoElement = document.getElementById(
-      "myStreamVideoElement"
-    ) as HTMLVideoElement;
-
     console.log("video call: ", videoCall);
-    if (!callEnded && videoCall) {
-      getMediaStream("VIDEO").then((stream) => {
-        if (
-          stream &&
-          myStreamVideoElement &&
-          myStreamVideoElement?.srcObject === null
-        ) {
-          myStreamVideoElement.srcObject = stream;
+    console.log("streamertracks before the call started: ", remoteStreamTracks);
+    console.log("reomote streams: ", streamerMediaStreams);
+    if (videoCallInitiated || incomingCall || callAccepted) {
+      if (!myStream) {
+        const myStreamVideoElement = document.getElementById(
+          "myStreamVideoElement"
+        ) as HTMLVideoElement;
+        getMediaStream("VIDEO").then((stream) => {
+          if (
+            stream &&
+            myStreamVideoElement &&
+            myStreamVideoElement?.srcObject === null
+          ) {
+            myStreamVideoElement.srcObject = stream;
+          }
+          setMyStream(stream);
+        });
+      } else if (myStream) {
+        const myStreamVideoElement = document.getElementById(
+          "myStreamVideoElement"
+        ) as HTMLVideoElement;
+        if (myStreamVideoElement && myStreamVideoElement.srcObject === null) {
+          myStreamVideoElement.srcObject = myStream;
         }
-        setMyStream(stream);
-      });
+      }
     }
-    if (callEnded) {
-      console.log("clearing tracks");
-      console.log("before clearing tracks: ", myStream?.getTracks());
 
-      const tracks = myStream?.getTracks();
-      tracks && tracks.map((tracks) => tracks.stop());
-      setMyStream(null);
-      // setMyStream((mediastream) => {
-      //   console.log("clearing tracks: ", mediastream);
-      //   // mediastream && mediastream?.getTracks().forEach((track) => track.stop);
-      //   console.log("after clearing tracks: ", mediastream?.getTracks());
-
-      //   return null;
-      // });
-      // myStreamVideoElement.srcObject && (myStreamVideoElement.srcObject = null);
-
-      setVideoCall(false);
-    }
     if (remoteStreamTracks && remoteStreamTracks.length > 0) {
       if (videoCallInitiated) {
         console.log("using stream:", myStream);
@@ -80,6 +75,10 @@ export default function VideoCall() {
         setIncomingCall(false);
         setCallAccepted(true);
       } else if (callAccepted) {
+        console.log("remotemediastreams: ", streamerMediaStreams);
+        const remoteStreamElements =
+          document.getElementById("remoteVideoDiv")?.childNodes;
+        console.log("remoteStreamElements:", remoteStreamElements);
         const myStreamVideoElement = document.getElementById(
           "myStreamVideoElement"
         ) as HTMLVideoElement;
@@ -118,14 +117,33 @@ export default function VideoCall() {
         });
       }
     }
-  }, [
-    remoteStreamTracks,
-    videoCallInitiated,
-    incomingCall,
-    callAccepted,
-    callEnded,
-  ]);
+  }, [streamerMediaStreams, videoCallInitiated, incomingCall, callAccepted]);
+  useEffect(() => {
+    if (callEnded) {
+      // console.log("clearing tracks");
+      // console.log("before clearing tracks: ", myStream?.getTracks());
+      // console.log("video call:", videoCall);
+      // console.log("incomingCall:", incomingCall);
+      // console.log("videoCallInitiated:", videoCallInitiated);
+      // const tracks = myStream?.getTracks();
+      // tracks && tracks.map((tracks) => tracks.stop());
+      // setMyStream(null);
+      setMyStream((mediastream) => {
+        console.log("clearing tracks: ", mediastream?.getTracks());
+        mediastream &&
+          mediastream?.getTracks().forEach((track) => track.stop());
+        console.log("after clearing tracks: ", mediastream?.getTracks());
 
+        return null;
+      });
+      // myStreamVideoElement.srcObject && (myStreamVideoElement.srcObject = null);
+      setVideoCallInitiated(false);
+      setIncomingCall(false);
+      setCallAccepted(false);
+
+      setVideoCall(false);
+    }
+  }, [callEnded]);
   return (
     <>
       <div className="max-w-screen-sm max-h-max">
@@ -143,7 +161,6 @@ export default function VideoCall() {
             <div className="absolute transform -translate-x-1/2 left-2/4 bottom-1/4">
               <button
                 onClick={() => {
-                  setVideoCallInitiated(false);
                   clearMediaSoupConnection(
                     socket,
                     session?.user.userId || "",
@@ -191,7 +208,6 @@ export default function VideoCall() {
               <button
                 onClick={() => {
                   // clearMediaSoupConnection(socket);
-                  setIncomingCall(false);
                   setCallEnded(true);
                   // setMyStream((prevTracks) => {
                   //   prevTracks?.getTracks().forEach((track) => track.stop());
@@ -210,7 +226,7 @@ export default function VideoCall() {
           <div className="relative w-full flex gap-2">
             <div
               id="myStream"
-              className="absolute w-2/6 border-red-300 border-solid border-2"
+              className={`absolute w-2/6 border-red-300 border-solid border-2`}
             >
               <video
                 playsInline
@@ -233,7 +249,18 @@ export default function VideoCall() {
                     selectedConversation?.conversation.conversation_id || ""
                     // setMyStream
                   );
-                  setCallAccepted(false);
+                  streamerMediaStreams?.forEach((stream) =>
+                    stream.mediaStream
+                      .getTracks()
+                      .forEach((track) => track.stop())
+                  );
+
+                  setRemoteStreamTracks((prevTracks) => {
+                    prevTracks?.forEach((remoteTrack) => {
+                      remoteTrack.track.stop();
+                    });
+                    return null;
+                  });
                   setCallEnded(true);
 
                   // console.log(

@@ -20,6 +20,7 @@ import { useRecoilState, useSetRecoilState } from "recoil";
 import { useRef } from "react";
 // import { peerConnection } from "./webRtcConnection";
 import {
+  consumeData,
   createConsume,
   createRecvTransport,
   createSendTransport,
@@ -105,6 +106,7 @@ function useWebSocketHandler(): WebSocket | null {
           "messageType check inside websocketconnecion: ",
           messageData.messageType
         );
+        console.log("message data: ", messageData);
         switch (messageData.messageType) {
           case "newMessage":
             setMessages((prev) =>
@@ -204,8 +206,7 @@ function useWebSocketHandler(): WebSocket | null {
               newSocket,
               session?.user.userId || "",
               selectedConversationRef.current?.conversation.conversation_id ||
-                "",
-              setRemoteTracks
+                ""
             );
             // setVideoCallInitiated(false);
             // setCallAccepted(true);
@@ -216,11 +217,23 @@ function useWebSocketHandler(): WebSocket | null {
               newSocket,
               session?.user.userId || "",
               selectedConversationRef.current?.conversation.conversation_id ||
-                "",
-              setRemoteTracks
+                ""
             );
             break;
-          case "leftTheCall": {
+          case "consumerCreated":
+            await consumeData(messageData, setRemoteTracks);
+            break;
+          case "leftTheCall":
+            console.log("remote user id:", messageData.userId);
+            const userId: string = messageData.userId;
+            const remoteMediaStreamElement = document.getElementById(
+              userId
+            ) as HTMLVideoElement;
+            console.log(
+              "Remotemedia stream element:",
+              remoteMediaStreamElement
+            );
+            remoteMediaStreamElement?.remove();
             setRemoteTracks((prevTracks) => {
               prevTracks &&
                 prevTracks
@@ -235,8 +248,6 @@ function useWebSocketHandler(): WebSocket | null {
                 ) || null
               );
             });
-          }
-          default:
             break;
         }
       };

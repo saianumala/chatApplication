@@ -39,6 +39,7 @@ const ws_1 = require("ws");
 const http_1 = __importDefault(require("http"));
 const index_1 = __importDefault(require("../db/prisma/index"));
 const mediasoup = __importStar(require("mediasoup"));
+require("dotenv/config");
 class Client {
     constructor(clientId, socket) {
         this.clientId = clientId;
@@ -235,9 +236,7 @@ function clearMediaSoupConnection(conversationId, transportIds, userId) {
             if (client.clientId !== userId && client.socket) {
                 client.socket.send(JSON.stringify({
                     messageType: "leftTheCall",
-                    messageData: {
-                        userId: userId,
-                    },
+                    userId: userId,
                 }));
             }
         });
@@ -245,6 +244,8 @@ function clearMediaSoupConnection(conversationId, transportIds, userId) {
         console.log("ongoing call participants", onGoingCall);
         console.log("transports", transports);
         console.log("involved calls: ", callsInvolvedIn);
+        console.log(`router for ${conversationId} is ${router[conversationId]} `);
+        console.log("routers:", router);
         console.log("clients: ", clients);
     }
     catch (error) {
@@ -268,6 +269,12 @@ function createConsume(messageData) {
                 rtpCapabilities: messageData.rtpCapabilities,
             });
             console.log("consumer id:", consume.id);
+            console.log("consume data: ", consume);
+            // console.log(
+            //   `transports for ${messageData.producedUserId}: ${
+            //     transports[messageData.producedUserId]
+            //   } `
+            // );
             const client = clients.get(messageData.userId);
             client === null || client === void 0 ? void 0 : client.socket.send(JSON.stringify({
                 messageType: "consumerCreated",
@@ -399,14 +406,14 @@ function sendProducers(messageData) {
             }
             console.log("all joined participants: ", onGoingCall[messageData.conversationId]);
             console.log("producers to consume: ", producersToSend);
-            if (producersToSend.length > 0) {
-                const client = clients.get(messageData.userId);
-                client === null || client === void 0 ? void 0 : client.socket.send(JSON.stringify({
-                    messageType: "producersToConsume",
-                    conversationId: messageData.conversationId,
-                    producers: producersToSend,
-                }));
-            }
+        }
+        if (producersToSend.length > 0) {
+            const client = clients.get(messageData.userId);
+            client === null || client === void 0 ? void 0 : client.socket.send(JSON.stringify({
+                messageType: "producersToConsume",
+                conversationId: messageData.conversationId,
+                producers: producersToSend,
+            }));
         }
     });
 }
@@ -519,7 +526,9 @@ function callInitiated(messageData) {
             if (!conversationUsers) {
                 throw new Error("no conversation exists with this id");
             }
-            const initiatorData = conversationUsers.conversationParticipants.find((participant) => {
+            const initiatorData = conversationUsers.conversationParticipants.find(
+            //@ts-ignore
+            (participant) => {
                 return participant.participantNumber === messageData.myNumber;
             });
             if (!initiatorData) {
@@ -642,7 +651,7 @@ function createTransport(messageData) {
             }
             const callRouter = router[conversationId];
             const transport = yield callRouter.createWebRtcTransport({
-                listenIps: [{ ip: "127.0.0.1" }],
+                listenIps: [{ ip: "0.0.0.0", announcedIp: process.env.myPublicIP }],
                 enableUdp: true,
                 enableTcp: true,
                 preferUdp: true,
