@@ -10,7 +10,7 @@ node_modules/
 
 # Build outputs
 .next/
-websocket/websocket.js
+src/websocket/websocket.js
 dist/
 
 # TypeScript
