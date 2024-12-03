@@ -42,7 +42,7 @@ const server = http.createServer((request, response) => {
   response.end("hello");
 });
 
-server.listen(8080, "0.0.0.0", () => {
+server.listen(8080, "127.0.0.1", () => {
   console.log("server is running");
 });
 

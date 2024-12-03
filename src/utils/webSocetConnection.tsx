@@ -86,7 +86,7 @@ function useWebSocketHandler(): WebSocket | null {
   useEffect(() => {
     const connectWebSocket = () => {
       const newSocket = new WebSocket(
-        `ws://localhost:8080/c?clientId=${session?.user.userId}`
+        `wss://chat.anumala.com/ws/c?clientId=${session?.user.userId}`
       );
 
       newSocket.onopen = () => {
