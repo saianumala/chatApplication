@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Conversation" ADD COLUMN     "DateModified" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

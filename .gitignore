@@ -10,7 +10,8 @@ node_modules/
 
 # Build outputs
 .next/
-src/websocket/websocket.js
+websocket/websocket.js
+db/prisma/index.js
 dist/
 
 # TypeScript
