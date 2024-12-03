@@ -250,11 +250,14 @@ export default function VideoCall() {
                     // setMyStream
                   );
                   streamerMediaStreams?.forEach(
-                    (stream: {
-                      remoteStreamerId: string;
-                      mediaStream: MediaStream;
-                    }) =>
-                      stream?.mediaStream
+                    (
+                      stream: {
+                        remoteStreamerId: string;
+                        mediaStream: MediaStream;
+                      } | null
+                    ) =>
+                      stream &&
+                      stream.mediaStream
                         .getTracks()
                         .forEach((track) => track.stop())
                   );
