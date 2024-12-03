@@ -30,8 +30,8 @@ src/websocket/.env
 *.swo
 
 # Prisma
-src/prisma/.env
-src/prisma/migrations
+src/db/prisma/.env
+src/db/prisma/migrations/
 
 # Miscellaneous
 *.lock
