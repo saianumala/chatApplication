@@ -10,8 +10,8 @@ node_modules/
 
 # Build outputs
 .next/
-websocket/websocket.js
-db/prisma/index.js
+src/websocket/websocket.js
+src/db/prisma/index.js
 dist/
 
 # TypeScript
@@ -20,7 +20,7 @@ dist/
 # Environment variables
 .env
 src/db/.env
-websocket/.env
+src/websocket/.env
 
 # IDE and editor files
 .vscode/
@@ -30,8 +30,8 @@ websocket/.env
 *.swo
 
 # Prisma
-prisma/.env
-prisma/migrations/
+src/prisma/.env
+src/prisma/migrations
 
 # Miscellaneous
 *.lock
