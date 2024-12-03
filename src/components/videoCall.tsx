@@ -254,7 +254,7 @@ export default function VideoCall() {
                       remoteStreamerId: string;
                       mediaStream: MediaStream;
                     }) =>
-                      stream.mediaStream
+                      stream?.mediaStream
                         .getTracks()
                         .forEach((track) => track.stop())
                   );
