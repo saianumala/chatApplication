@@ -1,5 +1,4 @@
 import prisma from "@/db/prisma";
-import { count } from "console";
 import { NextRequest, NextResponse } from "next/server";
 // checking if conversation exists
 export async function GET(req: NextRequest) {
