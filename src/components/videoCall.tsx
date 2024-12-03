@@ -249,18 +249,32 @@ export default function VideoCall() {
                     selectedConversation?.conversation.conversation_id || ""
                     // setMyStream
                   );
-                  streamerMediaStreams?.forEach((stream) =>
-                    stream.mediaStream
-                      .getTracks()
-                      .forEach((track) => track.stop())
+                  streamerMediaStreams?.forEach(
+                    (stream: {
+                      remoteStreamerId: string;
+                      mediaStream: MediaStream;
+                    }) =>
+                      stream.mediaStream
+                        .getTracks()
+                        .forEach((track) => track.stop())
                   );
 
-                  setRemoteStreamTracks((prevTracks) => {
-                    prevTracks?.forEach((remoteTrack) => {
-                      remoteTrack.track.stop();
-                    });
-                    return null;
-                  });
+                  setRemoteStreamTracks(
+                    (
+                      prevTracks:
+                        | {
+                            remoteStreamerId: string;
+                            kind: string;
+                            track: MediaStreamTrack;
+                          }[]
+                        | null
+                    ) => {
+                      prevTracks?.forEach((remoteTrack) => {
+                        remoteTrack.track.stop();
+                      });
+                      return null;
+                    }
+                  );
                   setCallEnded(true);
 
                   // console.log(
