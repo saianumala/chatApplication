@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ data: result });
   } catch (error) {
     // console.log("error", error);
-    console.log("database call failed", error)
+    console.log("database call failed", error);
 
     return NextResponse.json(
       { message: "database call failed" },
