@@ -45,7 +45,7 @@ export default function Home() {
           }  p-2 h-full`}
         >
           <div className="h-full w-full bg-slate-400">
-            <AllConversations userID={session?.user.userId} />
+            <AllConversations />
           </div>
         </div>
         <div
