@@ -44,17 +44,17 @@ export function AllContacts({
 
   return (
     <div className="flex flex-col items-center w-full h-full justify-center">
-      <div className="flex flex-col items-start">
+      <div className="flex flex-col items-center justify-center w-full gap-2">
         {contacts ? (
           contacts.map((contact) => (
-            <div key={contact.contactId}>
+            <div key={contact.contactId} className="w-2/4">
               {contact.mobileNumber !== session?.user.mobileNumber && (
                 <div
                   onClick={() => setSelectedContact(contact)}
                   key={contact.contactId}
-                  className="bg-slate-300 flex gap-2 border-solid border-black border-2 rounded-md"
+                  className="rounded-md w-full bg-slate-400"
                 >
-                  <h3>{contact.contactName}</h3>
+                  <button>{contact.contactName}</button>
                 </div>
               )}
             </div>

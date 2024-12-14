@@ -16,6 +16,7 @@ model User{
   conversations ConverstionParticipant[]
   myContacts Contact[]
   ReadStatus ReadStatus[]
+  callLogs callDescription[]
 }
 
 model Message{
@@ -42,13 +43,7 @@ model ReadStatus {
   @@unique([userId, messageId])
 }
 
-enum conversationType{
-  GROUP
-  NORMAL
-}
-// two types of conversations
-// in a normal type conversation, same two people cannot be in two different conversations ie., there should not be two entries for same two users
-// in a group 
+
 model Conversation{
   conversation_id String @id @default(uuid())
   type conversationType @default(NORMAL)
@@ -58,7 +53,11 @@ model Conversation{
   createdAt DateTime @default(now())
   messages    Message[]
   DateModified DateTime @default(now())
-  
+  callInformation callInformation[]
+}
+enum conversationType{
+  GROUP
+  NORMAL
 }
 
 model ConverstionParticipant{
@@ -78,3 +77,45 @@ model Contact{
   user User @relation(fields: [savedById], references: [id])
   @@unique([savedById, mobileNumber])
 }
+
+model callInformation{
+  callInformationId String @id @default(uuid())
+  conversationId String
+  callActive Boolean
+  callEnded Boolean
+  callType callType
+  callStartedAt DateTime @default(now())
+  callEndedAt DateTime?
+  callDuration Int?
+  conversation Conversation @relation(fields: [conversationId], references: [conversation_id])
+  participantsDescription callDescription[]
+
+}
+model callDescription{ 
+callDescriptionId String @id @default(uuid())
+userId String
+joined Boolean
+callInformationId String 
+callInformation callInformation @relation(fields:[callInformationId], references: [callInformationId])
+callResponse callResponse?
+callDirection callDirection
+user User @relation(fields: [userId], references: [id])
+@@unique([callInformationId, userId])
+}
+enum callResponse{
+accepted
+missed
+declined
+}
+enum callDirection{
+  outGoing
+  incoming
+}
+ enum callStatus{
+  active
+  ended
+ }
+ enum callType{
+  video
+  audio
+ }

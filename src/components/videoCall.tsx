@@ -1,5 +1,6 @@
 import {
   callAcceptedAtom,
+  callDeclinedAtom,
   conversationAtom,
   incomingCallAtom,
   incomingCallMessageDataAtom,
@@ -26,6 +27,7 @@ export default function VideoCall() {
   );
   const [videoCall, setVideoCall] = useRecoilState(videoCallAtom);
   const [callEnded, setCallEnded] = useState(false);
+  const [callDeclined, setCallDeclined] = useRecoilState(callDeclinedAtom);
   const streamerMediaStreams = useRecoilValue(remoteMediaStreamsSelector);
   const [myStream, setMyStream] = useRecoilState(myStreamAtom);
   const [remoteStreamTracks, setRemoteStreamTracks] =
@@ -43,16 +45,26 @@ export default function VideoCall() {
         const myStreamVideoElement = document.getElementById(
           "myStreamVideoElement"
         ) as HTMLVideoElement;
-        getMediaStream("VIDEO").then((stream) => {
-          if (
-            stream &&
-            myStreamVideoElement &&
-            myStreamVideoElement?.srcObject === null
-          ) {
-            myStreamVideoElement.srcObject = stream;
-          }
-          setMyStream(stream);
-        });
+        navigator.mediaDevices
+          .getUserMedia({
+            video: {
+              width: 1280,
+              height: 720,
+              frameRate: 30,
+            },
+            audio: false,
+          })
+          .then((stream) => {
+            if (
+              stream &&
+              myStreamVideoElement &&
+              myStreamVideoElement?.srcObject === null
+            ) {
+              myStreamVideoElement.srcObject = stream;
+            }
+            setMyStream(stream);
+          })
+          .catch((error) => console.error(error));
       } else if (myStream) {
         const myStreamVideoElement = document.getElementById(
           "myStreamVideoElement"
@@ -98,8 +110,25 @@ export default function VideoCall() {
               const remoteVideoElement = document.createElement("video");
               remoteVideoElement.autoplay = true;
               remoteVideoElement.id = remoteMediastream.remoteStreamerId;
-              remoteVideoElement.style.width = "400px";
-              remoteVideoElement.style.height = "400px";
+              remoteVideoElement.style.width = `${
+                streamerMediaStreams.length === 1
+                  ? "100%"
+                  : streamerMediaStreams.length === 2
+                  ? "48%"
+                  : streamerMediaStreams.length === 3
+                  ? "33.33%"
+                  : "400px"
+              }`;
+              remoteVideoElement.style.height = `${
+                streamerMediaStreams.length === 1
+                  ? "100%"
+                  : streamerMediaStreams.length === 2
+                  ? "100%"
+                  : streamerMediaStreams.length === 3
+                  ? "33.33%"
+                  : "400px"
+              }`;
+              remoteVideoElement.style.objectFit = "cover";
               const remoteVideoDiv = document.getElementById(
                 "remoteVideoDiv"
               ) as HTMLDivElement;
@@ -146,32 +175,47 @@ export default function VideoCall() {
   }, [callEnded]);
   return (
     <>
-      <div className="max-w-screen-sm max-h-max">
+      <div className="w-full h-full">
         {videoCallInitiated && (
           <div
             id="myStreamDiv"
-            className="relative w-full h-full  border-red-300 border-solid border-2"
+            className="relative w-full h-full border-red-300 border-solid border-2"
           >
             <video
               playsInline
               autoPlay
-              className="bg-slate-300 w-full"
+              className="w-full h-full object-cover"
               id="myStreamVideoElement"
             ></video>
             <div className="absolute transform -translate-x-1/2 left-2/4 bottom-1/4">
+              {callDeclined && (
+                <span className="text-white">call declined. close</span>
+              )}
               <button
                 onClick={() => {
                   clearMediaSoupConnection(
                     socket,
-                    session?.user.userId || "",
-                    selectedConversation?.conversation.conversation_id || ""
+                    session?.user.userId || ""
                     // setMyStream
                   );
                   setCallEnded(true);
+                  setCallDeclined(false);
                 }}
                 className="bg-red-700 p-2 rounded-lg"
               >
-                end
+                {callDeclined ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    height="24px"
+                    viewBox="0 -960 960 960"
+                    width="24px"
+                    fill="#e8eaed"
+                  >
+                    <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
+                  </svg>
+                ) : (
+                  "end"
+                )}
               </button>
             </div>
           </div>
@@ -179,12 +223,12 @@ export default function VideoCall() {
         {incomingCall && (
           <div
             id="myStream"
-            className="relative w-full bg-black border-red-300 border-solid border-2"
+            className="relative w-full h-full bg-black border-red-300 border-solid border-2"
           >
             <video
               playsInline
               autoPlay
-              className="w-full bg-blue-300 z-10"
+              className="w-full h-full bg-blue-300 z-10 object-cover"
               id="myStreamVideoElement"
             ></video>
             {/*  myvideo display */}
@@ -208,6 +252,15 @@ export default function VideoCall() {
               <button
                 onClick={() => {
                   // clearMediaSoupConnection(socket);
+                  socket?.send(
+                    JSON.stringify({
+                      messageType: "callDeclined",
+                      messageData: {
+                        conversationId: incomingCallMessageData?.conversationId,
+                        userId: session?.user.userId,
+                      },
+                    })
+                  );
                   setCallEnded(true);
                   // setMyStream((prevTracks) => {
                   //   prevTracks?.getTracks().forEach((track) => track.stop());
@@ -223,30 +276,37 @@ export default function VideoCall() {
         )}
 
         {callAccepted && (
-          <div className="relative w-full flex gap-2">
+          <div className="relative w-full h-full flex gap-2">
             <div
               id="myStream"
-              className={`absolute w-2/6 border-red-300 border-solid border-2`}
+              className={` ${
+                streamerMediaStreams && streamerMediaStreams.length > 0
+                  ? "absolute w-1/6"
+                  : "w-full h-full border-red-300 border-solid border-2"
+              } `}
             >
               <video
                 playsInline
                 autoPlay
-                className="w-full"
+                className="w-full h-full object-cover"
                 id="myStreamVideoElement"
               ></video>
               {/*  myvideo display */}
             </div>
             <div
               id="remoteVideoDiv"
-              className="w-full flexjustify-evenly border-red-800 border-solid border-2"
+              className={`${
+                !streamerMediaStreams || streamerMediaStreams.length === 0
+                  ? "hidden"
+                  : "w-full justify-evenly flex  h-full  border-red-800 border-solid border-2"
+              }  `}
             ></div>
             <div className="absolute transform -translate-x-1/2 left-2/4 bottom-1/4">
               <button
                 onClick={() => {
                   clearMediaSoupConnection(
                     socket,
-                    session?.user.userId || "",
-                    selectedConversation?.conversation.conversation_id || ""
+                    session?.user.userId || ""
                     // setMyStream
                   );
                   streamerMediaStreams?.forEach(
@@ -255,11 +315,20 @@ export default function VideoCall() {
                         remoteStreamerId: string;
                         mediaStream: MediaStream;
                       } | null
-                    ) =>
+                    ) => {
                       stream &&
-                      stream.mediaStream
-                        .getTracks()
-                        .forEach((track) => track.stop())
+                        stream.mediaStream
+                          .getTracks()
+                          .forEach((track) => track.stop());
+                      const remoteMediaStreamElement =
+                        stream?.remoteStreamerId &&
+                        (document.getElementById(
+                          stream?.remoteStreamerId
+                        ) as HTMLVideoElement);
+
+                      remoteMediaStreamElement &&
+                        remoteMediaStreamElement?.remove();
+                    }
                   );
 
                   setRemoteStreamTracks(

@@ -35,6 +35,7 @@ export function initiateCall(
   // console.log("call type before assinging", callType);
   callType = typeOfCall;
   // console.log("call type after assinging", callType);
+  console.log("initiaing call. sending message to socket: ");
   conversationId = conversation_id;
   socket?.send(
     JSON.stringify({
@@ -61,6 +62,7 @@ export function acceptIncomingCall(
         conversationId: messageData.conversationId,
         myNumber: myNumber,
         callType: messageData.callType,
+        activeCall: messageData.activeCall,
       },
     })
   );
@@ -494,7 +496,6 @@ export async function consumeData(
 export function clearMediaSoupConnection(
   socket: WebSocket | null,
   userId: string,
-  conversation_id: string,
   // setMyStream: SetterOrUpdater<MediaStream | null>,
   myStream?: MediaStream | null
 ) {
@@ -529,7 +530,4 @@ export function clearMediaSoupConnection(
   conversationId = null;
 
   callType = null;
-
-  // let producerss: mediasoupClient.types.Producer<mediasoupClient.types.AppData>[] =
-  //   [];
 }

@@ -1,6 +1,7 @@
 import {
   audioCallAtom,
   callAcceptedAtom,
+  callDeclinedAtom,
   callTypeAtom,
   conversationAtom,
   conversationsAtom,
@@ -40,6 +41,7 @@ function useWebSocketHandler(): WebSocket | null {
   const setIncomingCallMessageData = useSetRecoilState(
     incomingCallMessageDataAtom
   );
+  const setCallDeclined = useSetRecoilState(callDeclinedAtom);
   const setCallType = useSetRecoilState(callTypeAtom);
 
   const setRemoteTracks = useSetRecoilState(remoteTracksAtom);
@@ -84,9 +86,10 @@ function useWebSocketHandler(): WebSocket | null {
   }, [selectedConversation]);
 
   useEffect(() => {
+    console.log("env var", process.env.NEXT_PUBLIC_WS_URL);
     const connectWebSocket = () => {
       const newSocket = new WebSocket(
-        `wss://chat.anumala.com/ws/c?clientId=${session?.user.userId}`
+        `${process.env.NEXT_PUBLIC_WS_URL}/c?clientId=${session?.user.userId}`
       );
 
       newSocket.onopen = () => {
@@ -176,9 +179,9 @@ function useWebSocketHandler(): WebSocket | null {
               setIncomingCallMessageData(messageData);
             } else if (callType === "audio") {
               setIncomingCallMessageData(messageData);
-              setCallType("audio");
-
+              setIncomingCall(true);
               setAudioCall(true);
+              setCallType("audio");
             }
 
             break;
@@ -248,6 +251,9 @@ function useWebSocketHandler(): WebSocket | null {
                 ) || null
               );
             });
+            break;
+          case "callDeclined":
+            setCallDeclined(true);
             break;
         }
       };

@@ -8,11 +8,7 @@ import { useSession } from "next-auth/react";
 import React, { useEffect } from "react";
 import { useRecoilState, useSetRecoilState } from "recoil";
 
-export default function SearchContacts({
-  searchRef,
-}: {
-  searchRef: React.MutableRefObject<HTMLDialogElement | null>;
-}) {
+export default function SearchContacts() {
   const setMessages = useSetRecoilState(messagesAtom);
   const [selectedConversation, setselectedConversation] =
     useRecoilState(conversationAtom);
@@ -63,7 +59,6 @@ export default function SearchContacts({
 
       setMessages([]);
     }
-    searchRef?.current?.close();
   }
   async function createConversation(friendNumber: string) {
     try {
@@ -113,16 +108,17 @@ export default function SearchContacts({
   }
 
   return (
-    <>
+    <div className="relative w-full">
       <input
-        className="border-2 border-solid border-black"
+        className="outline-none w-full rounded-md"
         type="search"
-        placeholder="search"
+        placeholder="search contacts"
         onChange={(e) => setSearchValue(e.target.value)}
       />
       <div>
         {searchedContacts?.map((searchedContact) => (
           <div
+            className="absolute bg-white text-black w-full"
             key={searchedContact.contactID}
             onClick={() => handleConversation({ searchedContact })}
           >
@@ -130,7 +126,7 @@ export default function SearchContacts({
           </div>
         ))}
       </div>
-      <button onClick={() => searchRef.current?.close()}>close</button>
-    </>
+      {/* <button onClick={() => searchRef.current?.close()}>close</button> */}
+    </div>
   );
 }

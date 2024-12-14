@@ -227,3 +227,8 @@ export const remoteMediaStreamsSelector = selector({
     return result;
   },
 });
+
+export const callDeclinedAtom = atom({
+  key: "callDeclinedAtom",
+  default: false,
+});

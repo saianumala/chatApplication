@@ -3,6 +3,7 @@ import http from "http";
 import prisma from "../db/prisma/index";
 import * as mediasoup from "mediasoup";
 import "dotenv/config";
+import { callResponse } from "@prisma/client";
 
 class Client {
   clientId: string;
@@ -143,7 +144,6 @@ wss.on("connection", async function connection(socket, req) {
           break;
         case "joinCall":
           sendRtpCapabilities(conversationData.messageData);
-
           break;
         case "createTransport":
           createTransport(conversationData.messageData);
@@ -160,6 +160,9 @@ wss.on("connection", async function connection(socket, req) {
         case "getProducers":
           sendProducers(conversationData.messageData);
           break;
+        case "callDeclined":
+          callDeclined(conversationData.messageData);
+          break;
         case "callEnded":
           console.log("call ended data: ", conversationData.messageData);
           clearMediaSoupConnection(
@@ -167,6 +170,8 @@ wss.on("connection", async function connection(socket, req) {
             conversationData.messageData.transportIds,
             conversationData.messageData.userId
           );
+          break;
+        case "missedCall":
           break;
         default:
           break;
@@ -209,7 +214,7 @@ wss.on("connection", async function connection(socket, req) {
     }
   });
 });
-function clearMediaSoupConnection(
+async function clearMediaSoupConnection(
   conversationId: string,
   transportIds: string[],
   userId: string
@@ -234,6 +239,18 @@ function clearMediaSoupConnection(
       const participants = Object.keys(onGoingCall[conversationId]);
 
       if (participants.length === 0) {
+        await prisma.callInformation.updateMany({
+          where: {
+            callActive: true,
+            conversationId: conversationId,
+          },
+          data: {
+            callActive: false,
+            callEnded: true,
+            callEndedAt: new Date(),
+            // callDuration:
+          },
+        });
         delete onGoingCall[conversationId];
         if (router[conversationId]) {
           router[conversationId].close();
@@ -241,6 +258,7 @@ function clearMediaSoupConnection(
         }
       }
     }
+
     clients.forEach((client) => {
       if (client.clientId !== userId && client.socket) {
         client.socket.send(
@@ -464,20 +482,7 @@ async function connectTransport(messageData: any) {
   try {
     // console.log("dtls parameters to connect: ", dtlsParameters);
     await transport.connect({ dtlsParameters });
-    const status = await transport.getStats();
 
-    status.forEach((stat) => {
-      // console.log("Transport stats:", stat);
-      console.log("requested transports connection State:", stat.dtlsState); // `new`, `connecting`, `connected`, `failed`, or `closed`
-    });
-    for (const [transportID, transportt] of Object.entries(transports)) {
-      const stats = await transportt.getStats();
-
-      stats.forEach((stat) => {
-        // console.log("Transport stats:", stat);
-        console.log("DTLS State:", stat.dtlsState); // `new`, `connecting`, `connected`, `failed`, or `closed`
-      });
-    }
     const client = clients.get(messageData.userId);
     if (client) {
       console.log(`sending ${messageData.direction}TransportConnectResponse`);
@@ -538,6 +543,8 @@ async function callInitiated(messageData: any) {
   // need my number using which i will send rtpcapabilities
 
   try {
+    const callType: "video" | "audio" =
+      messageData.callType === "video" ? "video" : "audio";
     const conversationId: string = messageData.conversationId;
     // if (!router[conversationId]) {
     router[conversationId] = await createRouter(messageData.callType);
@@ -564,11 +571,11 @@ async function callInitiated(messageData: any) {
       throw new Error("no conversation exists with this id");
     }
     const initiatorData = conversationUsers.conversationParticipants.find(
-      //@ts-ignore
       (participant) => {
         return participant.participantNumber === messageData.myNumber;
       }
     );
+    console.log("initiator data: ", initiatorData);
     if (!initiatorData) {
       throw new Error("initiator data not found");
     }
@@ -608,42 +615,179 @@ async function callInitiated(messageData: any) {
     };
 
     if (clients.has(initiatorData?.user.id)) {
-      console.log("sending router capabilities to:", initiatorData.user.id);
-      console.log("clients: ", clients);
-      const client = clients.get(initiatorData.user.id);
-      client?.socket.send(
-        JSON.stringify({
-          messageType: "routerCapabilities",
-          sendTransportFirst: true,
-          rtpCapabilities: router[conversationId].rtpCapabilities,
-          conversationId: conversationId,
-        })
-      );
-    }
-    remainingConversationParticipantsIds.map((participantId) => {
-      if (clients.has(participantId)) {
-        console.log("sending incomincall notification to: ", participantId);
-
-        const client = clients.get(participantId);
+      const isCallActive = await prisma.callInformation.findFirst({
+        where: {
+          callActive: true,
+          conversationId: messageData.conversationId,
+        },
+      });
+      if (isCallActive) {
+        const client = clients.get(initiatorData.user.id);
         client?.socket.send(
           JSON.stringify({
-            messageType: "incomingCall",
-            callType: messageData.callType,
-            conversationId: messageData.conversationId,
+            messageType: "call is active",
+            rtpCapabilities: router[conversationId].rtpCapabilities,
+            conversationId: conversationId,
+            activeCall: isCallActive,
           })
         );
       } else {
-        console.log("socket is not there");
+        const activeCall = await prisma.callInformation.create({
+          data: {
+            callActive: true,
+            callEnded: false,
+            conversationId: messageData.conversationId,
+            callType: callType,
+          },
+        });
+        await prisma.callDescription.create({
+          data: {
+            callInformationId: activeCall.callInformationId,
+            joined: true,
+            callDirection: "outGoing",
+            userId: initiatorData.user.id,
+          },
+        });
+        console.log("sending router capabilities to:", initiatorData.user.id);
+        console.log("clients: ", clients);
+        const client = clients.get(initiatorData.user.id);
+        client?.socket.send(
+          JSON.stringify({
+            messageType: "routerCapabilities",
+            sendTransportFirst: true,
+            rtpCapabilities: router[conversationId].rtpCapabilities,
+            conversationId: conversationId,
+            activeCall: activeCall,
+          })
+        );
+        remainingConversationParticipantsIds.map(async (participantId) => {
+          console.log("sending incomingcall notification to: ", participantId);
+
+          const remoteClient = clients.get(participantId);
+          if (remoteClient) {
+            await prisma.callDescription.create({
+              data: {
+                userId: participantId,
+                callDirection: "incoming",
+                joined: false,
+                callInformationId: activeCall.callInformationId,
+              },
+            });
+            remoteClient.socket.send(
+              JSON.stringify({
+                messageType: "incomingCall",
+                callType: messageData.callType,
+                conversationId: messageData.conversationId,
+                activeCall: activeCall,
+              })
+            );
+          } else {
+            console.log("callInformationId: ", activeCall.callInformationId);
+            console.log("participantId: ");
+            await prisma.callDescription.create({
+              data: {
+                userId: participantId,
+                callDirection: "incoming",
+                joined: false,
+                callResponse: "missed",
+                callInformationId: activeCall.callInformationId,
+              },
+            });
+            client?.socket.send(
+              JSON.stringify({ messageType: "friendIsOffline" })
+            );
+            console.log("socket is not there");
+          }
+        });
       }
-    });
+    }
   } catch (error: any) {
     console.error("Error: ", error);
+  }
+}
+async function callDeclined(messageData: any) {
+  // send the initiator that the call has been declined, if it is a group call don't bother sending the call declined message to the client, if it is a two way call then send the message.
+  try {
+    const conversationId: string = messageData.conversationId;
+    const userId = messageData.userId;
+    console.log("conversationId:", conversationId);
+    console.log("userId: ", userId);
+    if (!conversationId || "") {
+      console.log("conversationId required ", conversationId);
+    } else {
+      const activeCallInformation = await prisma.callInformation.findFirst({
+        where: {
+          callActive: true,
+          conversationId: conversationId,
+        },
+        include: {
+          conversation: {
+            select: {
+              conversationParticipants: {
+                select: {
+                  user: {
+                    select: {
+                      id: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+      if (activeCallInformation && userId) {
+        console.log("updating call response to declined");
+        await prisma.callDescription.update({
+          where: {
+            callInformationId_userId: {
+              callInformationId: activeCallInformation.callInformationId,
+              userId: userId,
+            },
+          },
+          data: {
+            callResponse: "declined",
+          },
+        });
+        if (
+          activeCallInformation.conversation.conversationParticipants.length ===
+          2
+        ) {
+          const remoteClientUser =
+            activeCallInformation.conversation.conversationParticipants.find(
+              (participant) => participant.user.id !== userId
+            );
+          console.log("clients: ", clients);
+          if (remoteClientUser) {
+            console.log(
+              "sending call declined notification to  ",
+              remoteClientUser
+            );
+            const remoteClient = clients.get(remoteClientUser.user.id);
+            if (remoteClient && remoteClient.socket) {
+              remoteClient?.socket.send(
+                JSON.stringify({
+                  messageType: "callDeclined",
+                })
+              );
+            } else {
+              console.log("socket is not present");
+            }
+          }
+        }
+      } else {
+        console.error("no active call or userId is missing:", userId);
+      }
+    }
+  } catch (error) {
+    console.log(error);
   }
 }
 
 async function sendRtpCapabilities(messageData: any) {
   try {
     const callRouter = router[messageData.conversationId];
+    console.log("messageData for joining call: ", messageData);
     const user = await prisma.user.findUnique({
       where: {
         mobileNumber: messageData.myNumber,
@@ -674,7 +818,18 @@ async function sendRtpCapabilities(messageData: any) {
       "rtpCapabilities: ",
       router[messageData.conversationId].rtpCapabilities
     );
-
+    await prisma.callDescription.update({
+      where: {
+        callInformationId_userId: {
+          callInformationId: messageData.activeCall.callInformationId,
+          userId: user.id,
+        },
+      },
+      data: {
+        callResponse: "accepted",
+        joined: true,
+      },
+    });
     if (clients.has(user.id)) {
       const client = clients.get(user.id);
       // console.log("sending router capabilities to: ", user.id);

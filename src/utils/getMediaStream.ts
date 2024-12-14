@@ -3,9 +3,9 @@ export async function getMediaStream(type: "VIDEO" | "AUDIO") {
 
   if (type === "VIDEO") {
     mediaConstraints.video = {
-      width: 1280,
-      height: 720,
-      frameRate: 30,
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      frameRate: { ideal: 30, max: 60 },
     };
     mediaConstraints.audio = {
       echoCancellation: true,
