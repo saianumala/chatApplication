@@ -75,8 +75,11 @@ export function GroupCreate({
             <h1 className="bg-slate-700 w-full">participants</h1>
             {participants &&
               Object.values(participants)?.map((participant) => (
-                <div className="flex justify-between border-slate-700 border-solid border-b-[1px]">
-                  <h1 key={participant.contactId}>{participant.contactName}</h1>
+                <div
+                  key={participant.contactId}
+                  className="flex justify-between border-slate-700 border-solid border-b-[1px]"
+                >
+                  <h1>{participant.contactName}</h1>
                   <button
                     onClick={() => {
                       setParticipants((prevParticipants) => {
