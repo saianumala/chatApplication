@@ -5,6 +5,9 @@ import { useRecoilState, useSetRecoilState } from "recoil";
 import {
   conversationAtom,
   conversationsAtom,
+  displayCallLogsSelectedAtom,
+  displayContactsSelectedAtom,
+  displayConversationsSelectedAtom,
   messagesAtom,
 } from "@/recoil_store/src/atoms/atoms";
 import { useEffect, useRef, useState } from "react";
@@ -14,10 +17,10 @@ import { AddContact } from "./newContact";
 import { AllContacts } from "./allcontacts";
 import SearchContacts from "./searchContacts.";
 import { GroupCreate } from "./groupCreate";
-import { useSendMessage } from "@/utils/webSocketSendMessages";
-import { useWebSocketHandler } from "@/utils/webSocetConnection";
+
 import { DisplayConversations } from "./displayConversations";
 import { CallLogs } from "./callLogs";
+import { DialogBox } from "./dialogBox";
 
 // todo - notifications
 // todo - add otp based login along with password
@@ -28,12 +31,20 @@ import { CallLogs } from "./callLogs";
 export default function AllConversations() {
   const { data: session } = useSession();
   const router = useRouter();
-  const [callLogs, setCallLogs] = useState(false);
+  const [displayCallLogs, setDisplayCallLogs] = useRecoilState(
+    displayCallLogsSelectedAtom
+  );
+  const [displayContacts, setDisplayContacts] = useRecoilState(
+    displayContactsSelectedAtom
+  );
+  const [displayConversations, setDisplayConversations] = useRecoilState(
+    displayConversationsSelectedAtom
+  );
   const [conversations, setConversations] = useRecoilState(conversationsAtom);
-  const contactsRef = useRef<HTMLDialogElement | null>(null);
   const addContactRef = useRef<HTMLDialogElement | null>(null);
   const searchRef = useRef<HTMLDialogElement | null>(null);
   const groupCreateRef = useRef<HTMLDialogElement | null>(null);
+
   const [loading, setLoading] = useState(true);
   console.log("new conversations", conversations);
 
@@ -46,43 +57,25 @@ export default function AllConversations() {
   // } else {
   return (
     <div className="w-full h-full p-2">
-      <dialog
-        className="backdrop:black/50 bg-black -translate-x-[50%] -translate-y-[50%] top-2/4 left-2/4 text-white  w-4/6 h-4/6"
-        ref={addContactRef}
-      >
+      <DialogBox dialogRef={addContactRef}>
         <div className="flex justify-center w-full h-full">
           <AddContact addContactRef={addContactRef} />
         </div>
-      </dialog>
+      </DialogBox>
 
-      <dialog
-        className="backdrop:black/50 bg-black -translate-x-[50%] -translate-y-[50%] top-2/4 left-2/4 text-white  w-4/6 h-4/6"
-        ref={contactsRef}
-      >
-        <div className="flex justify-center w-full h-full">
-          <AllContacts contactsRef={contactsRef} />
-        </div>
-      </dialog>
-
-      <dialog
-        className="backdrop:black/50 bg-black -translate-x-[50%] -translate-y-[50%] top-2/4 left-2/4 text-white  w-4/6 h-4/6"
-        ref={groupCreateRef}
-      >
+      <DialogBox dialogRef={groupCreateRef}>
         <div className="flex justify-center w-full h-full">
           <GroupCreate
             myNumber={session?.user?.mobileNumber!}
             groupCreateRef={groupCreateRef}
           />
         </div>
-      </dialog>
-      <dialog
-        className="backdrop:black/50 bg-black -translate-x-[50%] -translate-y-[50%] top-2/4 left-2/4 text-white  w-4/6 h-4/6"
-        ref={searchRef}
-      >
+      </DialogBox>
+      <DialogBox dialogRef={searchRef}>
         <div className="flex justify-center w-full h-full">
-          <SearchContacts />
+          <SearchContacts searchRef={searchRef} />
         </div>
-      </dialog>
+      </DialogBox>
 
       <div className="flex w-full flex-col h-full items-start">
         <div className="flex w-full flex-row h-full items-start">
@@ -102,19 +95,62 @@ export default function AllConversations() {
                   <path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z" />
                 </svg>
               </button>
-              {/* call logs */}
+              {/* all conversations or continue chatting */}
               <button
-                onClick={() => setCallLogs((prev) => !prev)}
-                className="outline-none active:bg-slate-200"
+                className={` outline-none`}
+                onClick={() => {
+                  setDisplayCallLogs(false);
+                  setDisplayContacts(false);
+                  setDisplayConversations(true);
+                }}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   height="25px"
                   viewBox="0 -960 960 960"
                   width="25px"
+                  className={`${displayConversations && "fill-slate-400"} `}
+                >
+                  <path d="M240-400h320v-80H240v80Zm0-120h480v-80H240v80Zm0-120h480v-80H240v80ZM80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Zm126-240h594v-480H160v525l46-45Zm-46 0v-480 480Z" />
+                </svg>
+              </button>
+              {/* call logs */}
+              <button
+                onClick={() => {
+                  setDisplayCallLogs(true);
+                  setDisplayContacts(false);
+                  setDisplayConversations(false);
+                }}
+                className={` outline-none`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  height="25px"
+                  viewBox="0 -960 960 960"
+                  width="25px"
+                  className={`${displayCallLogs && "fill-slate-400"} `}
                 >
                   <path d="M493.33-813.33V-880H880v66.67H493.33Zm0 146.66v-66.66H880v66.66H493.33Zm0 146.67v-66.67H880V-520H493.33ZM756-80q-119 0-240-55.5T293-293Q191-395 135.5-516T80-756q0-18.86 12.57-31.43T124-800h147.33q14 0 24.34 9.83Q306-780.33 309.33-766l26.62 130.43q2.05 14.9-.62 26.24-2.66 11.33-10.82 19.48L225.67-490q24 41.67 52.5 78.5T341-341.33q35 35.66 73.67 65.5Q453.33-246 496-222.67l94.67-96.66q9.66-10.34 23.26-14.5 13.61-4.17 26.74-2.17L766-309.33q14.67 4 24.33 15.53Q800-282.27 800-268v144q0 18.86-12.57 31.43T756-80ZM193-552l76-76.67-21-104.66H147q3 41.66 13.67 86Q171.33-603 193-552Zm365.33 361.33q40.34 18.34 85.84 29.67 45.5 11.33 89.16 13.67V-248l-100-20.33-75 77.66ZM193-552Zm365.33 361.33Z" />
                 </svg>
+              </button>
+              {/* all contacts */}
+              <button
+                className={`outline-none `}
+                onClick={() => {
+                  setDisplayCallLogs(false);
+                  setDisplayContacts(true);
+                  setDisplayConversations(false);
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  height="25px"
+                  viewBox="0 -960 960 960"
+                  width="25px"
+                  className={`${displayContacts && "fill-slate-400"} `}
+                >
+                  <path d="M149.33-40v-66.67h661.34V-40H149.33Zm0-813.33V-920h661.34v66.67H149.33ZM480-442.67q50 0 84.33-34.33 34.34-34.33 34.34-84.33t-34.34-84.34Q530-680 480-680t-84.33 34.33q-34.34 34.34-34.34 84.34T395.67-477Q430-442.67 480-442.67ZM141.33-160q-27 0-46.83-19.83-19.83-19.84-19.83-46.84v-506.66q0-28.34 19.83-47.5Q114.33-800 141.33-800h677.34q27 0 46.83 19.83 19.83 19.84 19.83 46.84v506.66q0 27-19.83 46.84Q845.67-160 818.67-160H141.33Zm82-66.67q49-60.66 117-92.33t139.34-31.67Q551-350.67 620-319q69 31.67 116.67 92.33h82v-506.66H141.33v506.66h82Zm102 0H636q-30.33-26.66-69.17-42Q528-284 480-284t-86.17 15.33q-38.16 15.34-68.5 42Zm154.78-282.66q-21.78 0-36.61-15.17-14.83-15.17-14.83-36.83 0-21.67 14.72-36.84 14.73-15.16 36.5-15.16 21.78 0 36.61 15.16 14.83 15.17 14.83 36.84 0 21.66-14.72 36.83-14.73 15.17-36.5 15.17ZM480-480Z" />
+                </svg>{" "}
               </button>
               {/* add new contacts */}
               <button
@@ -146,24 +182,11 @@ export default function AllConversations() {
                   <path d="M482.67-484.67q27-32 40.5-68.33t13.5-81q0-44.67-13.5-81t-40.5-68.33q70.66-8.67 122.33 33 51.67 41.66 51.67 116.33T605-517.67q-51.67 41.67-122.33 33ZM700-160v-102.67q0-46-22.67-86.16-22.66-40.17-74-68.5 132.34 20.66 189.17 58.16 56.83 37.5 56.83 96.5V-160H700Zm100-286v-93.33h-93.33V-606H800v-93.33h66.67V-606H960v66.67h-93.33V-446H800Zm-483.33-34.67q-66 0-109.67-43.66Q163.33-568 163.33-634T207-743.67q43.67-43.66 109.67-43.66t109.66 43.66Q470-700 470-634t-43.67 109.67q-43.66 43.66-109.66 43.66ZM0-160v-100q0-34.67 18.17-63.17 18.16-28.5 48.5-42.83 68.66-31.67 127.66-46.17t122.34-14.5q63.33 0 122 14.5Q497.33-397.67 566-366q30.33 14.33 48.83 42.83t18.5 63.17v100H0Zm316.67-387.33q37 0 61.83-24.84Q403.33-597 403.33-634t-24.83-61.83q-24.83-24.84-61.83-24.84t-61.84 24.84Q230-671 230-634t24.83 61.83q24.84 24.84 61.84 24.84Zm-250 320.66h500V-260q0-14.33-7.17-26.67Q552.33-299 538-306q-64-30.33-114.33-42.17-50.34-11.83-107-11.83Q260-360 210-348.17 160-336.33 94.67-306q-13 6.33-20.5 19t-7.5 27v33.33Zm250-407.33Zm0 407.33Z" />
                 </svg>
               </button>
-              {/* all contacts */}
-              <button
-                className="outline-none"
-                onClick={() => contactsRef.current?.showModal()}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="25px"
-                  viewBox="0 -960 960 960"
-                  width="25px"
-                >
-                  <path d="M149.33-40v-66.67h661.34V-40H149.33Zm0-813.33V-920h661.34v66.67H149.33ZM480-442.67q50 0 84.33-34.33 34.34-34.33 34.34-84.33t-34.34-84.34Q530-680 480-680t-84.33 34.33q-34.34 34.34-34.34 84.34T395.67-477Q430-442.67 480-442.67ZM141.33-160q-27 0-46.83-19.83-19.83-19.84-19.83-46.84v-506.66q0-28.34 19.83-47.5Q114.33-800 141.33-800h677.34q27 0 46.83 19.83 19.83 19.84 19.83 46.84v506.66q0 27-19.83 46.84Q845.67-160 818.67-160H141.33Zm82-66.67q49-60.66 117-92.33t139.34-31.67Q551-350.67 620-319q69 31.67 116.67 92.33h82v-506.66H141.33v506.66h82Zm102 0H636q-30.33-26.66-69.17-42Q528-284 480-284t-86.17 15.33q-38.16 15.34-68.5 42Zm154.78-282.66q-21.78 0-36.61-15.17-14.83-15.17-14.83-36.83 0-21.67 14.72-36.84 14.73-15.16 36.5-15.16 21.78 0 36.61 15.16 14.83 15.17 14.83 36.84 0 21.66-14.72 36.83-14.73 15.17-36.5 15.17ZM480-480Z" />
-                </svg>{" "}
-              </button>
             </div>
 
             <div className="flex-none w-full">
               <div className="flex items-center justify-center flex-col gap-4 overflow-hidden">
+                {/* logout */}
                 <button
                   className="w-full p-1 outline-none"
                   onClick={() => {
@@ -179,7 +202,7 @@ export default function AllConversations() {
                     <path d="M186.67-120q-27 0-46.84-19.83Q120-159.67 120-186.67v-586.66q0-27 19.83-46.84Q159.67-840 186.67-840h292.66v66.67H186.67v586.66h292.66V-120H186.67Zm470.66-176.67-47-48 102-102H360v-66.66h351l-102-102 47-48 184 184-182.67 182.66Z" />
                   </svg>
                 </button>
-
+                {/* settings */}
                 <button className="flex outline-none items-center justify-center hover:scale-110 gap-2 w-full">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -193,8 +216,22 @@ export default function AllConversations() {
               </div>
             </div>
           </div>
-          <div className="w-full h-full">
-            {callLogs ? <CallLogs /> : <DisplayConversations />}
+          <div className="w-full h-full p-2">
+            {displayCallLogs && (
+              <div className={`w-full h-full`}>
+                <CallLogs />
+              </div>
+            )}
+            {displayConversations && (
+              <div className="w-full h-full">
+                <DisplayConversations />
+              </div>
+            )}
+            {displayContacts && (
+              <div className="w-full h-full">
+                <AllContacts />
+              </div>
+            )}
           </div>
         </div>
       </div>

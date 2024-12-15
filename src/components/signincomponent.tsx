@@ -17,7 +17,26 @@ function SignInComponent() {
 
   return (
     <>
-      <form className="flex flex-col">
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          console.log(email, password);
+          const res = await signIn("credentials", {
+            redirect: false,
+            user: email,
+            password: password,
+          });
+
+          if (res?.ok) {
+            router.push(`${process.env.NEXTAUTH_URL}`);
+          } else {
+            setsigninError((prev) => !prev);
+
+            console.log(res?.error);
+          }
+        }}
+        className="flex flex-col"
+      >
         {signinError ? (
           <h3 className="bg-red-600 shadow-md text-center rounded-md">
             {" "}
@@ -56,23 +75,7 @@ function SignInComponent() {
             classname={
               "text-center flex-1 bg-black mt-1 p-2 rounded-md text-white"
             }
-            onClick={async (e) => {
-              e.preventDefault();
-              console.log(email, password);
-              const res = await signIn("credentials", {
-                redirect: false,
-                user: email,
-                password: password,
-              });
-
-              if (res?.ok) {
-                router.push(`${process.env.NEXTAUTH_URL}`);
-              } else {
-                setsigninError((prev) => !prev);
-
-                console.log(res?.error);
-              }
-            }}
+            type="submit"
           />
         </div>
         <h1>

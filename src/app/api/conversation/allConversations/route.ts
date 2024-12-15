@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
       throw new Error("please login");
     }
 
-    const user = await prisma.user.findUnique({
+    const userData = await prisma.user.findUnique({
       where: {
         mobileNumber: session.user.mobileNumber,
       },
@@ -44,14 +44,15 @@ export async function GET(req: NextRequest) {
             },
           },
         },
+        myContacts: true,
       },
     });
 
-    if (!user) {
+    if (!userData) {
       throw new Error("no conversations");
     }
     return NextResponse.json(
-      { conversations: user?.conversations },
+      { conversations: userData.conversations, contacts: userData.myContacts },
       { status: 200 }
     );
   } catch (error: any) {

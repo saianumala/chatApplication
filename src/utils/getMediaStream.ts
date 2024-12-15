@@ -1,3 +1,4 @@
+let stream: MediaStream | null = null;
 export async function getMediaStream(type: "VIDEO" | "AUDIO") {
   const mediaConstraints: MediaStreamConstraints = {};
 
@@ -15,6 +16,18 @@ export async function getMediaStream(type: "VIDEO" | "AUDIO") {
       echoCancellation: true,
     };
   }
+  if (!stream) {
+    stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+  }
 
-  return await navigator.mediaDevices.getUserMedia(mediaConstraints);
+  return stream;
+}
+export function clearMediaStream() {
+  if (stream) {
+    console.log("before clearing stream", stream);
+
+    stream?.getTracks().forEach((track) => track.stop());
+    stream = null;
+    console.log("after clearing stream", stream);
+  }
 }

@@ -69,6 +69,7 @@ export const selectedContactAtom = atom<{
 export const conversationsAtom = atom<
   | {
       conversation: {
+        DateModified: Date;
         conversationParticipants: {
           id: string;
           conversationId: string;
@@ -80,6 +81,7 @@ export const conversationsAtom = atom<
         ReadStatus: {
           id: string;
         }[];
+        type: string;
       };
     }[]
   | null
@@ -90,18 +92,19 @@ export const conversationsAtom = atom<
 
 export const conversationAtom = atom<{
   conversation: {
+    DateModified: Date;
     conversationParticipants: {
       id: string;
       conversationId: string;
       participantNumber: string;
     }[];
     conversation_id: string;
-
     conversationName: string | null;
     createdAt: Date;
     ReadStatus: {
       id: string;
     }[];
+    type: string;
   };
 } | null>({
   key: "conversationAtom",
@@ -173,7 +176,37 @@ export const remoteTracksAtom = atom<
   key: "remoteTracksAtom",
   default: null,
 });
-
+// export const conversationDetailsSelector = selector({
+//   key: "conversationDetailsSelector",
+//   get: ({get}) => {
+//     const conversations = get(conversationsAtom)
+//     const contacts = get(contactsAtom)
+//     if(!conversations){
+//       return null
+//     }
+//     const newConversations = conversations?.map(
+//           (conversation) => {
+//             if (conversation.conversation.conversationParticipants.length === 2) {
+//               const otherParticipant =
+//               conversation.conversation.conversationParticipants.filter(
+//                   (conversationParticipant) =>
+//                     conversationParticipant !== session?.user.mobileNumber
+//                 );
+//               const otherParticipantContact = contacts?.filter(
+//                 (contact: any) =>
+//                   contact.mobileNumber === otherParticipant.participantNumber
+//               );
+//               return {
+//                 ...conversation,
+//                 contactName: otherParticipantContact.contactName,
+//               };
+//             }
+//             return conversation;
+//           }
+//         );
+//         return newConversations;
+//   }
+// })
 export const remoteMediaStreamsSelector = selector({
   key: "remoteMediaStreamsSelector",
   get: ({ get }) => {
@@ -231,4 +264,25 @@ export const remoteMediaStreamsSelector = selector({
 export const callDeclinedAtom = atom({
   key: "callDeclinedAtom",
   default: false,
+});
+
+export const displayCallLogsSelectedAtom = atom({
+  key: "displayCallLogsSelectedAtom",
+  default: false,
+});
+export const displayContactsSelectedAtom = atom({
+  key: "displayContactsSelectedAtom",
+  default: false,
+});
+export const displayConversationsSelectedAtom = atom({
+  key: "displayConversationsSelectedAtom",
+  default: true,
+});
+export const contactNameAtom = atom<string | null>({
+  key: "contactNameAtom",
+  default: null,
+});
+export const newContactmobileNumberAtom = atom<string | null>({
+  key: "newContactmobileNumberAtom",
+  default: null,
 });

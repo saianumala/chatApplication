@@ -10,14 +10,13 @@ import {
   videoCallAtom,
   videoCallInitiatedAtom,
 } from "@/recoil_store/src/atoms/atoms";
-import { getMediaStream } from "@/utils/getMediaStream";
+import { clearMediaStream, getMediaStream } from "@/utils/getMediaStream";
 import { acceptIncomingCall } from "@/utils/mediaSoupConnection";
 import { useWebSocketHandler } from "@/utils/webSocetConnection";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRecoilState, useRecoilValue } from "recoil";
 import { clearMediaSoupConnection } from "@/utils/mediaSoupConnection";
-import { log } from "console";
 
 export default function VideoCall() {
   const [incomingCall, setIncomingCall] = useRecoilState(incomingCallAtom);
@@ -29,7 +28,8 @@ export default function VideoCall() {
   const [callEnded, setCallEnded] = useState(false);
   const [callDeclined, setCallDeclined] = useRecoilState(callDeclinedAtom);
   const streamerMediaStreams = useRecoilValue(remoteMediaStreamsSelector);
-  const [myStream, setMyStream] = useRecoilState(myStreamAtom);
+  // const [myStream, setMyStream] = useRecoilState(myStreamAtom);
+  let myStream: MediaStream | null = null;
   const [remoteStreamTracks, setRemoteStreamTracks] =
     useRecoilState(remoteTracksAtom);
   const { data: session } = useSession();
@@ -42,36 +42,29 @@ export default function VideoCall() {
     console.log("reomote streams: ", streamerMediaStreams);
     if (videoCallInitiated || incomingCall || callAccepted) {
       if (!myStream) {
-        const myStreamVideoElement = document.getElementById(
-          "myStreamVideoElement"
-        ) as HTMLVideoElement;
-        navigator.mediaDevices
-          .getUserMedia({
-            video: {
-              width: 1280,
-              height: 720,
-              frameRate: 30,
-            },
-            audio: false,
-          })
+        console.log("creating my stream");
+
+        getMediaStream("VIDEO")
           .then((stream) => {
+            myStream = stream;
+            const myStreamVideoElement = document.getElementById(
+              "myStreamVideoElement"
+            ) as HTMLVideoElement;
             if (
-              stream &&
               myStreamVideoElement &&
-              myStreamVideoElement?.srcObject === null
+              myStreamVideoElement.srcObject === null
             ) {
-              myStreamVideoElement.srcObject = stream;
+              myStreamVideoElement.srcObject = myStream;
             }
-            setMyStream(stream);
           })
           .catch((error) => console.error(error));
-      } else if (myStream) {
-        const myStreamVideoElement = document.getElementById(
-          "myStreamVideoElement"
-        ) as HTMLVideoElement;
-        if (myStreamVideoElement && myStreamVideoElement.srcObject === null) {
-          myStreamVideoElement.srcObject = myStream;
-        }
+      }
+      console.log("mystream inside videocall: ", myStream);
+      const myStreamVideoElement = document.getElementById(
+        "myStreamVideoElement"
+      ) as HTMLVideoElement;
+      if (myStreamVideoElement && myStreamVideoElement.srcObject === null) {
+        myStreamVideoElement.srcObject = myStream;
       }
     }
 
@@ -91,14 +84,7 @@ export default function VideoCall() {
         const remoteStreamElements =
           document.getElementById("remoteVideoDiv")?.childNodes;
         console.log("remoteStreamElements:", remoteStreamElements);
-        const myStreamVideoElement = document.getElementById(
-          "myStreamVideoElement"
-        ) as HTMLVideoElement;
-        // if (myStreamVideoElement && myStreamVideoElement.srcObject === null) {
-        //   getMediaStream("VIDEO").then((stream) => {
-        //     myStreamVideoElement.srcObject = stream;
-        //   });
-        // }
+
         console.log("using stream:", myStream);
         streamerMediaStreams?.map((remoteMediastream) => {
           if (remoteMediastream) {
@@ -149,23 +135,10 @@ export default function VideoCall() {
   }, [streamerMediaStreams, videoCallInitiated, incomingCall, callAccepted]);
   useEffect(() => {
     if (callEnded) {
-      // console.log("clearing tracks");
-      // console.log("before clearing tracks: ", myStream?.getTracks());
-      // console.log("video call:", videoCall);
-      // console.log("incomingCall:", incomingCall);
-      // console.log("videoCallInitiated:", videoCallInitiated);
-      // const tracks = myStream?.getTracks();
-      // tracks && tracks.map((tracks) => tracks.stop());
-      // setMyStream(null);
-      setMyStream((mediastream) => {
-        console.log("clearing tracks: ", mediastream?.getTracks());
-        mediastream &&
-          mediastream?.getTracks().forEach((track) => track.stop());
-        console.log("after clearing tracks: ", mediastream?.getTracks());
-
-        return null;
-      });
-      // myStreamVideoElement.srcObject && (myStreamVideoElement.srcObject = null);
+      console.log("clearing mystream tracks");
+      myStream?.getTracks().forEach((track) => track.stop());
+      myStream = null;
+      clearMediaStream();
       setVideoCallInitiated(false);
       setIncomingCall(false);
       setCallAccepted(false);
@@ -281,7 +254,7 @@ export default function VideoCall() {
               id="myStream"
               className={` ${
                 streamerMediaStreams && streamerMediaStreams.length > 0
-                  ? "absolute w-1/6"
+                  ? "absolute sm:w-2/6 w-2/4"
                   : "w-full h-full border-red-300 border-solid border-2"
               } `}
             >

@@ -40,9 +40,9 @@ export default function Home() {
           <CallProvider />
         </div>
         <div
-          className={`max-w-[400px] sm:w-[300px] ${
-            selectedConversation ? "hidden sm:block sm:w-[300px]" : "w-full"
-          }  p-2 h-full`}
+          className={`max-w-[400px] sm:w-[400px] p-2 h-full ${
+            selectedConversation ? "hidden sm:block " : "w-full"
+          }  `}
         >
           <div className="h-full w-full bg-slate-400">
             <AllConversations />

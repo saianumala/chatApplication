@@ -1,9 +1,16 @@
 import prisma from "@/db/prisma";
+import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
+import { authOptions } from "../../auth/[...nextauth]/options";
 // import http from "http"
 
 export async function POST(request: NextRequest, response: NextResponse) {
+  const session = await getServerSession(authOptions);
+
   try {
+    if (!session) {
+      return NextResponse.json({ message: "please login" }, { status: 401 });
+    }
     const {
       type,
       myNumber,
@@ -17,7 +24,14 @@ export async function POST(request: NextRequest, response: NextResponse) {
       throw new Error("wrong conversation type");
     }
     console.log(myNumber, friendNumber);
-
+    const friendsContact = await prisma.contact.findUnique({
+      where: {
+        savedById_mobileNumber: {
+          mobileNumber: friendNumber,
+          savedById: session.user.userId || "",
+        },
+      },
+    });
     const conversation = await prisma.conversation.findFirst({
       where: {
         AND: [
@@ -49,12 +63,37 @@ export async function POST(request: NextRequest, response: NextResponse) {
         ],
       },
       include: {
+        messages: {
+          orderBy: {
+            createdAt: "asc",
+          },
+          include: {
+            ReadStatus: {
+              where: {
+                isRead: false,
+              },
+              select: {
+                id: true,
+                conversationId: true,
+                isRead: true,
+                readAt: true,
+              },
+            },
+          },
+        },
         conversationParticipants: true,
-        messages: true,
       },
     });
     if (conversation) {
-      throw new Error("A conversation already exists");
+      return NextResponse.json(
+        {
+          conversation: {
+            ...conversation,
+            conversationName: friendsContact?.contactName,
+          },
+        },
+        { status: 200 }
+      );
     }
     const newConversation = await prisma.conversation.create({
       data: {
@@ -95,11 +134,12 @@ export async function POST(request: NextRequest, response: NextResponse) {
     });
     return NextResponse.json(
       {
-        conversation: newConversation,
+        conversation: {
+          ...newConversation,
+          conversationName: friendsContact?.contactName,
+        },
       },
-      {
-        status: 200,
-      }
+      { status: 200 }
     );
   } catch (error) {
     if (error instanceof Error) {

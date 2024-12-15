@@ -1,11 +1,21 @@
+import {
+  contactNameAtom,
+  newContactmobileNumberAtom,
+} from "@/recoil_store/src/atoms/atoms";
 import { FormEvent, MutableRefObject } from "react";
+import { useRecoilState, useSetRecoilState } from "recoil";
 
 export function AddContact({
   addContactRef,
 }: {
   addContactRef: MutableRefObject<HTMLDialogElement | null>;
 }) {
+  const setContactName = useSetRecoilState(contactNameAtom);
+  const [newContactMobileNumber, setNewContactMobileNumber] = useRecoilState(
+    newContactmobileNumberAtom
+  );
   async function handleAddContact(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     const formdata = new FormData(e.target as HTMLFormElement);
     const res = await fetch("/api/contact/createContact", {
       method: "post",
@@ -19,6 +29,11 @@ export function AddContact({
     });
     if (res.ok) {
       console.log("contact saved");
+      setContactName(null);
+      setNewContactMobileNumber(null);
+      addContactRef?.current?.close();
+    } else {
+      console.error(res);
     }
   }
   return (
@@ -31,6 +46,7 @@ export function AddContact({
           <div>
             <label htmlFor="contactName">Name</label>
             <input
+              onChange={(e) => setContactName(e.target.value)}
               className="text-black p-2 w-full rounded-md"
               name="contactName"
               id="contactName"
@@ -41,11 +57,13 @@ export function AddContact({
           <div>
             <label htmlFor="mobileNumber">number</label>
             <input
-              id="mobileNumber"
+              onChange={(e) => setNewContactMobileNumber(e.target.value)}
+              id="newContactmobileNumber"
               className="text-black p-2 w-full rounded-md"
-              type="search"
+              type="text"
               placeholder="Phone Number"
               name="mobileNumber"
+              value={newContactMobileNumber || ""}
             />
           </div>
         </div>
@@ -58,6 +76,8 @@ export function AddContact({
           className="underline hover:scale-110 transition-all"
           onClick={(e) => {
             e.preventDefault();
+            setContactName(null);
+            setNewContactMobileNumber(null);
             addContactRef.current?.close();
           }}
         >

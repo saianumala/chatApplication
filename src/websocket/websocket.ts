@@ -221,6 +221,16 @@ async function clearMediaSoupConnection(
 ) {
   try {
     if (onGoingCall[conversationId]) {
+      await prisma.callInformation.updateMany({
+        where: {
+          conversationId: conversationId,
+          callActive: true,
+        },
+        data: {
+          callActive: false,
+          callEnded: true,
+        },
+      });
       if (transportIds) {
         transportIds.forEach((transportId) => {
           {

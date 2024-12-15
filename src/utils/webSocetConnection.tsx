@@ -27,6 +27,7 @@ import {
   createSendTransport,
   requestTransports,
 } from "./mediaSoupConnection";
+import { getMediaStream } from "./getMediaStream";
 
 function useWebSocketHandler(): WebSocket | null {
   const { data: session } = useSession();
@@ -42,7 +43,7 @@ function useWebSocketHandler(): WebSocket | null {
     incomingCallMessageDataAtom
   );
   const setCallDeclined = useSetRecoilState(callDeclinedAtom);
-  const setCallType = useSetRecoilState(callTypeAtom);
+  const [callType, setCallType] = useRecoilState(callTypeAtom);
 
   const setRemoteTracks = useSetRecoilState(remoteTracksAtom);
   const [callAccepted, setCallAccepted] = useRecoilState(callAcceptedAtom);
@@ -169,15 +170,15 @@ function useWebSocketHandler(): WebSocket | null {
             break;
           case "incomingCall":
             console.log("incoming call: ", messageData);
-            const callType: string = messageData.callType;
+            const typeOfCall: string = messageData.callType;
 
-            if (callType === "video") {
+            if (typeOfCall === "video") {
               setCallType("video");
               console.log("inside calltype video");
               setVideoCall(true);
               setIncomingCall(true);
               setIncomingCallMessageData(messageData);
-            } else if (callType === "audio") {
+            } else if (typeOfCall === "audio") {
               setIncomingCallMessageData(messageData);
               setIncomingCall(true);
               setAudioCall(true);
@@ -193,6 +194,7 @@ function useWebSocketHandler(): WebSocket | null {
               selectedConversationRef?.current?.conversation.conversation_id ||
                 ""
             );
+
             break;
           case "receiveTransport":
             await createRecvTransport(

@@ -6,13 +6,8 @@ import { MutableRefObject, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Button from "./button";
 
-export function AllContacts({
-  contactsRef,
-}: {
-  contactsRef?: MutableRefObject<HTMLDialogElement | null>;
-}) {
+export function AllContacts() {
   const { data: session } = useSession();
-
   const [contacts, setContacts] = useRecoilState(contactsAtom);
   const [selectedContact, setSelectedContact] = useState<{
     contactId: string;
@@ -32,29 +27,27 @@ export function AllContacts({
     getContacts();
   }, []);
 
-  async function handleOnclick(contact: {
-    contactId: string;
-    savedById: string;
-    mobileNumber: string;
-    contactName: string;
-  }) {
-    console.log("contact: ", contact);
-    // display contact details
-  }
-
   return (
-    <div className="flex flex-col items-center w-full h-full justify-center">
-      <div className="flex flex-col items-center justify-center w-full gap-2">
+    <div className="flex flex-col w-full h-full ">
+      <div className="flex flex-col w-full h-full gap-2 overflow-y-auto">
         {contacts ? (
           contacts.map((contact) => (
-            <div key={contact.contactId} className="w-2/4">
+            <div key={contact.contactId} className="w-full">
               {contact.mobileNumber !== session?.user.mobileNumber && (
                 <div
                   onClick={() => setSelectedContact(contact)}
                   key={contact.contactId}
-                  className="rounded-md w-full bg-slate-400"
+                  className="flex gap-2 group rounded-md w-full bg-slate-400 p-2"
                 >
-                  <button>{contact.contactName}</button>
+                  <h1 className="w-[28px] bg-slate-700 rounded-full flex items-center justify-center">
+                    {contact.contactName.charAt(0).toUpperCase()}
+                  </h1>
+                  <div>
+                    <button>{contact.contactName}</button>
+                    {selectedContact?.contactId === contact.contactId && (
+                      <h2>{contact.mobileNumber}</h2>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -63,12 +56,6 @@ export function AllContacts({
           <p>No contacts</p>
         )}
       </div>
-      <button
-        className={`${contactsRef && "hidden"}`}
-        onClick={() => contactsRef?.current?.close()}
-      >
-        close
-      </button>
     </div>
   );
 }

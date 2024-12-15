@@ -36,13 +36,10 @@ export function CallLogs() {
       .catch((error) => console.error(error));
   }, []);
   return (
-    <div className="w-full h-full">
-      <div className="overflow-y-auto h-full w-full">
+    <div className="w-full h-full border-red-900 border-2 border-solid">
+      <div className="h-full w-full border-black border-2 border-solid overflow-y-auto">
         {callLogs?.map((callLog) => (
-          <div
-            key={callLog.callDescriptionId}
-            className="flex gap-2 overflow-y-auto"
-          >
+          <div key={callLog.callDescriptionId} className="flex w-full gap-2">
             <h2>dp</h2>
             <div className="flex flex-col">
               <div>

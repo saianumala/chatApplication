@@ -1,17 +1,29 @@
 import {
   conversationAtom,
+  displayCallLogsSelectedAtom,
+  displayContactsSelectedAtom,
+  displayConversationsSelectedAtom,
   messagesAtom,
   searchedContactsAtom,
   searchValueAtom,
 } from "@/recoil_store/src/atoms/atoms";
 import { useSession } from "next-auth/react";
-import React, { useEffect } from "react";
+import React, { MutableRefObject, useEffect } from "react";
 import { useRecoilState, useSetRecoilState } from "recoil";
 
-export default function SearchContacts() {
+export default function SearchContacts({
+  searchRef,
+}: {
+  searchRef: MutableRefObject<HTMLDialogElement | null>;
+}) {
   const setMessages = useSetRecoilState(messagesAtom);
   const [selectedConversation, setselectedConversation] =
     useRecoilState(conversationAtom);
+  const setDisplayCallLogs = useSetRecoilState(displayCallLogsSelectedAtom);
+  const setDisplayContacts = useSetRecoilState(displayContactsSelectedAtom);
+  const setDisplayConversations = useSetRecoilState(
+    displayConversationsSelectedAtom
+  );
 
   const [searchedContacts, setSearchedContacts] =
     useRecoilState(searchedContactsAtom);
@@ -21,7 +33,10 @@ export default function SearchContacts() {
   useEffect(() => {
     fetch(`api/getSearchedUsers?searchValue=${searchValue}`)
       .then((data) => data.json())
-      .then((data) => setSearchedContacts(data.data));
+      .then((data) => {
+        console.log("searchedContact data: ", data);
+        setSearchedContacts(data.data);
+      });
   }, [searchValue]);
 
   async function checkConversation(friendNumber: string) {
@@ -108,25 +123,38 @@ export default function SearchContacts() {
   }
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-3/4">
       <input
-        className="outline-none w-full rounded-md"
+        className="outline-none w-full text-black rounded-md"
         type="search"
         placeholder="search contacts"
         onChange={(e) => setSearchValue(e.target.value)}
       />
       <div>
         {searchedContacts?.map((searchedContact) => (
-          <div
-            className="absolute bg-white text-black w-full"
+          <button
+            className="bg-white text-black w-full"
             key={searchedContact.contactID}
-            onClick={() => handleConversation({ searchedContact })}
+            onClick={() => {
+              setDisplayCallLogs(false);
+              setDisplayContacts(false);
+              setDisplayConversations(true);
+              handleConversation({ searchedContact });
+              searchRef.current?.close();
+            }}
           >
             {searchedContact.contactName}
-          </div>
+          </button>
         ))}
       </div>
-      {/* <button onClick={() => searchRef.current?.close()}>close</button> */}
+      <button
+        onClick={() => {
+          console.log("search ref current", searchRef.current);
+          searchRef.current?.close();
+        }}
+      >
+        close
+      </button>
     </div>
   );
 }

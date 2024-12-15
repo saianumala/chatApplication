@@ -11,7 +11,7 @@ let recvTransport: mediasoupClient.types.Transport<mediasoupClient.types.AppData
 let callType: string | null = null;
 // let producerss: mediasoupClient.types.Producer<mediasoupClient.types.AppData>[] =
 //   [];
-let stream: MediaStream | null = null;
+let myStream: MediaStream | null = null;
 // let participantTracks: {
 //   [participantId: string]: {
 //     [track: string]: MediaStreamTrack;
@@ -157,15 +157,7 @@ export async function createSendTransport(
           iceParameters: messageData.iceParameters,
         });
 
-      // console.log("createsendtransport: ", messageData);
-      // console.log("ice candidates:", messageData.iceCandidates);
-      // console.log("transportId on the client: ", sendTransport?.id);
-      // console.log("transportId from the server", messageData.transportId);
-
-      // make the type dynamic
-      // console.log("Created send transport:", sendTransport);
       sendTransport?.on("connect", ({ dtlsParameters }, callback, errback) => {
-        // console.log("connect transport is triggered", dtlsParameters);
         socket?.send(
           JSON.stringify({
             messageType: "connectTransport",
@@ -178,22 +170,16 @@ export async function createSendTransport(
             },
           })
         );
-        // console.log(
-        //   "send transport connection state",
-        //   sendTransport?.connectionState
-        // );
+
         socket &&
           socket.addEventListener("message", (event) => {
             const connectResponseData = JSON.parse(event.data);
-            // console.log("messageType:", connectResponseData.messageType);
-            // console.log("transportId on the client: ", sendTransport?.id);
-            // console.log("transportId from the server", messageData.transportId);
+
             if (
               connectResponseData.messageType ===
                 "sendTransportConnectResponse" &&
               sendTransport?.id === messageData.transportId
             ) {
-              // console.log("connected");
               callback();
             } else if (
               connectResponseData.messageType === "connectTransportError" &&
@@ -210,9 +196,6 @@ export async function createSendTransport(
 
       sendTransport?.on("produce", async (parameters, callback, errback) => {
         try {
-          // console.log(
-          //   "onproduce event is triggered and sending createproduce request"
-          // );
           socket?.send(
             JSON.stringify({
               messageType: "createProduce",
@@ -234,7 +217,6 @@ export async function createSendTransport(
               const messagedata = JSON.parse(message.data);
               if (messagedata.messageType === "createProduceResponse") {
                 const id: string = messagedata.produceId;
-                // console.log("my createProduce response");
                 callback({ id });
               }
             });
@@ -242,41 +224,28 @@ export async function createSendTransport(
           errback(error);
         }
       });
-      // console.log("callType insde send transport", callType);
       if (callType === "video") {
-        // console.log("producing audio and video tracks");
+        myStream = await getMediaStream("VIDEO");
+        if (myStream) {
+          const videoTrack = myStream.getVideoTracks();
+          const audioTrack = myStream.getAudioTracks();
 
-        stream = await getMediaStream("VIDEO");
-        // const stream = await navigator.mediaDevices.getUserMedia({
-        //   au
-        // })
-
-        const videoTrack = stream.getVideoTracks();
-        const audioTrack = stream.getAudioTracks();
-        // console.log("got tracks");
-        // setMyStream(stream);
-        // const myVideoStreamElement = document.getElementById(
-        //   "myStreamVideoElement"
-        // ) as HTMLVideoElement;
-        await sendTransport?.produce({
-          track: audioTrack[0],
-        });
-        await sendTransport?.produce({
-          track: videoTrack[0],
-        });
-
-        // if (myVideoStreamElement) {
-        //   myVideoStreamElement.srcObject = stream;
-        //   console.log("sending produce requests");
-
-        // } else {
-        //   console.log("myvideostream element is null", myVideoStreamElement);
-        // }
+          await sendTransport?.produce({
+            track: audioTrack[0],
+          });
+          await sendTransport?.produce({
+            track: videoTrack[0],
+          });
+        } else {
+          console.log("my stream is empty: ", myStream);
+        }
       } else if (callType === "audio") {
-        stream = await getMediaStream("AUDIO");
-        const audioTrack = stream.getAudioTracks();
+        const myStream = await getMediaStream("VIDEO");
+        if (myStream) {
+          const audioTrack = myStream.getAudioTracks();
 
-        sendTransport?.produce({ track: audioTrack[0] });
+          sendTransport?.produce({ track: audioTrack[0] });
+        }
       }
     } catch (error) {
       console.error(error);
@@ -446,58 +415,15 @@ export async function consumeData(
                 },
               ])
       );
-      // consumeData = null;
     }
   } catch (error) {
     console.error("no data to consume", error);
   }
 }
-// function createMediaStream(participantId: string) {
-//   const { audioTrack, videoTrack } = participantTracks[participantId];
-
-//   console.log("participants tracks: ", participantTracks);
-//   if (callType === "video") {
-//     if (!audioTrack || !videoTrack) {
-//       return;
-//     }
-//     const mediastream = new MediaStream();
-//     mediastream.addTrack(audioTrack);
-//     mediastream.addTrack(videoTrack);
-
-//     // const remoteVideoDiv = document.getElementById(
-//     //   "remoteVideoDiv"
-//     // ) as HTMLDivElement;
-
-//     // const videoElement = document.createElement("video");
-//     // videoElement.id = `${participantId}-stream`;
-//     // videoElement.autoplay = true;
-//     // videoElement.playsInline = true;
-//     // videoElement.muted = true;
-//     // videoElement.srcObject = mediastream;
-//     // videoElement.style.border = "black 2px solid";
-//     // videoElement.srcObject = mediastream;
-
-//     // videoElement
-//     //   .play()
-//     //   .catch((err) => console.error("Video playback failed:", err));
-//     // remoteVideoDiv?.appendChild(videoElement);
-//   } else if (callType === "audio") {
-//     if (!audioTrack) {
-//       return;
-//     }
-//     const medistream = new MediaStream([audioTrack]);
-//     const audioElement = document.createElement("audio");
-//     audioElement.id = `${participantId}-stream`;
-//     audioElement.autoplay = true;
-//     audioElement.srcObject = medistream;
-//   }
-// }
 
 export function clearMediaSoupConnection(
   socket: WebSocket | null,
-  userId: string,
-  // setMyStream: SetterOrUpdater<MediaStream | null>,
-  myStream?: MediaStream | null
+  userId: string
 ) {
   socket?.send(
     JSON.stringify({
@@ -523,7 +449,8 @@ export function clearMediaSoupConnection(
 
   device = null;
   sendTransport = null;
-  stream && stream.getTracks().forEach((track) => track.stop());
+  myStream && myStream.getTracks().forEach((track) => track.stop());
+  myStream = null;
   sendTransport = null;
   recvTransport = null;
 

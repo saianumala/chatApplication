@@ -1,46 +1,45 @@
 "use client";
 import {
   conversationAtom,
-  messagesAtom,
   messageAtom,
-  incomingCallAtom,
   videoCallInitiatedAtom,
   audioCallInitiatedAtom,
   videoCallAtom,
   audioCallAtom,
   callTypeAtom,
+  newContactmobileNumberAtom,
 } from "@/recoil_store/src/atoms/atoms";
-import { useSendMessage } from "@/utils/webSocketSendMessages";
 import { useSession } from "next-auth/react";
-import { useEffect, useRef, useState } from "react";
 import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 
 import { useWebSocketHandler } from "@/utils/webSocetConnection";
 import { initiateCall } from "@/utils/mediaSoupConnection";
 import { DisplayMessages } from "./displayMessages";
+import { DialogBox } from "./dialogBox";
+import { AddContact } from "./newContact";
+import { useRef } from "react";
 
 export default function ChatRoom({ userId }: { userId: string }) {
   const conversation = useRecoilValue(conversationAtom);
   const socket = useWebSocketHandler();
-  const sendMessage = useSendMessage();
   const [message, setMessage] = useRecoilState(messageAtom);
   const [selectedConversation, setSelectedConversation] =
     useRecoilState(conversationAtom);
   const { data: session } = useSession();
-  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const callDialogRef = useRef<HTMLDialogElement | null>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
-  const setIncomingCall = useSetRecoilState(incomingCallAtom);
   const setVideoCallInitiated = useSetRecoilState(videoCallInitiatedAtom);
   const setAudioCallInitiated = useSetRecoilState(audioCallInitiatedAtom);
   const setVideoCall = useSetRecoilState(videoCallAtom);
   const setAudioCall = useSetRecoilState(audioCallAtom);
   const setCallType = useSetRecoilState(callTypeAtom);
+  const setNewContactMobileNumber = useSetRecoilState(
+    newContactmobileNumberAtom
+  );
+  const addContactRef = useRef<HTMLDialogElement | null>(null);
   console.log(
     selectedConversation?.conversation.conversation_id,
     "selectedConversation"
   );
+
   console.log(
     "selectedConversation",
     selectedConversation?.conversation.conversationParticipants
@@ -56,6 +55,14 @@ export default function ChatRoom({ userId }: { userId: string }) {
   // useEffect(() => {}, []);
   return (
     <div className="w-full h-full flex p-2 flex-col bg-slate-400">
+      <dialog
+        ref={addContactRef}
+        // className="-translate-x-[50%] -translate-y-[50%] top-2/4 left-2/4"
+      >
+        <div className="flex justify-center w-full h-full">
+          <AddContact addContactRef={addContactRef} />
+        </div>
+      </dialog>
       <nav className="flex justify-between gap-2 items-center bg-slate-200 flex-none w-full h-12 p-2">
         <svg
           onClick={() => {
@@ -139,10 +146,64 @@ export default function ChatRoom({ userId }: { userId: string }) {
           </div>
         </div>
       </nav>
+      {!selectedConversation?.conversation.conversationName && (
+        <div className="top-[7%] w-full bg-slate-700 mt-2 p-2">
+          <h2 className="w-full text-center">Not in Contacts</h2>
 
+          <div className="flex bg-slate-400 p-2">
+            <h2 id="participantNumber" className="flex-1 p-2">
+              {selectedConversation?.conversation.conversationName
+                ? selectedConversation?.conversation.conversationName
+                : selectedConversation?.conversation.conversationParticipants.map(
+                    (participant) =>
+                      participant.participantNumber !==
+                        session?.user.mobileNumber &&
+                      participant.participantNumber
+                  )}
+            </h2>
+
+            <button
+              onClick={() => {
+                const number =
+                  document.getElementById("participantNumber")?.innerHTML;
+                setNewContactMobileNumber(number || "");
+                addContactRef.current?.showModal();
+              }}
+              className="bg-slate-200 p-2 rounded-lg"
+            >
+              add contact
+            </button>
+          </div>
+        </div>
+      )}
       <DisplayMessages />
+
       <div className="flex-none">
-        <div className="flex w-full p-1 bg-slate-300 rounded-md gap-3">
+        <form
+          className="flex w-full p-1 bg-slate-300 rounded-md gap-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (message && message.length > 0) {
+              socket?.send(
+                JSON.stringify({
+                  messageType: "sendMessage",
+                  messageData: {
+                    messageContent: message,
+                    conversationId: conversation?.conversation.conversation_id,
+                    senderId: userId,
+                    conversationParicipants:
+                      conversation?.conversation.conversationParticipants,
+                  },
+                })
+              );
+            }
+            const inputElement = document.getElementById(
+              "messageText"
+            ) as HTMLInputElement;
+            inputElement.value = "";
+          }}
+          action=""
+        >
           <input
             id="messageText"
             className="flex-1 rounded-md p-1"
@@ -155,50 +216,15 @@ export default function ChatRoom({ userId }: { userId: string }) {
           {/* <button>att</button>
           <input type="file" /> */}
           <button
+            type="submit"
             className={`${
               (message === null || message === "") && "opacity-50"
             }`}
             disabled={!message}
-            onClick={() => {
-              // console.log(socket);
-              if (message && message.length > 0) {
-                socket?.send(
-                  JSON.stringify({
-                    messageType: "sendMessage",
-                    messageData: {
-                      messageContent: message,
-                      conversationId:
-                        conversation?.conversation.conversation_id,
-                      senderId: userId,
-                      conversationParicipants:
-                        conversation?.conversation.conversationParticipants,
-                    },
-                  })
-                );
-              }
-              const inputElement = document.getElementById(
-                "messageText"
-              ) as HTMLInputElement;
-              inputElement.value = "";
-              // socket?.send(
-              //   JSON.stringify({
-              //     type: "sendMessage",
-              //     messageData: {
-              //       messageContent: message,
-              //       conversationId: conversation?.conversation.conversation_id,
-              //       senderId: userId,
-              //       conversationParicipants:
-              //         conversation?.conversation.conversationParticipants,
-              //     },
-              //   })
-
-              // );
-              // setMessage("");
-            }}
           >
             send
           </button>
-        </div>
+        </form>
       </div>
     </div>
   );

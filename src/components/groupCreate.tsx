@@ -69,26 +69,47 @@ export function GroupCreate({
             placeholder="name"
           />
         </div>
-        <div className="flex p-2 gap-3">
+        <div className="flex flex-col w-full p-1 gap-3">
           <h1>{errorMessge}</h1>
-          <div className="flex flex-col w-2/4">
-            <h1>participants</h1>
+          <div className="flex flex-col w-full">
+            <h1 className="bg-slate-700 w-full">participants</h1>
             {participants &&
               Object.values(participants)?.map((participant) => (
-                <h1 key={participant.contactId}>{participant.contactName}</h1>
+                <div className="flex justify-between border-slate-700 border-solid border-b-[1px]">
+                  <h1 key={participant.contactId}>{participant.contactName}</h1>
+                  <button
+                    onClick={() => {
+                      setParticipants((prevParticipants) => {
+                        if (!prevParticipants) {
+                          return null;
+                        }
+                        delete prevParticipants[participant.participantNumber];
+                        return { ...prevParticipants };
+                      });
+                    }}
+                  >
+                    {" "}
+                    remove
+                  </button>
+                </div>
               ))}
-            <button onClick={createGroup}>create</button>
+            {participants && Object.keys(participants).length > 0 && (
+              <button onClick={createGroup}>create</button>
+            )}
           </div>
 
-          <div className="w-2/4">
-            <h1>contacts</h1>
+          <div className="w-full">
+            <h1 className="bg-slate-700">contacts</h1>
             {contacts &&
               contacts.map((eachContact) => {
                 const isAdded = participants
                   ? !!participants[eachContact.mobileNumber]
                   : false;
                 return (
-                  <div key={eachContact.contactId} className="flex gap-2">
+                  <div
+                    key={eachContact.contactId}
+                    className="flex gap-2 border-slate-700 border-solid border-b-[1px]"
+                  >
                     <h3 className="w-11/12">{eachContact.contactName}</h3>
                     {isAdded ? (
                       <button disabled={isAdded}>added</button>
@@ -124,6 +145,15 @@ export function GroupCreate({
           </div>
         </div>
       </div>
+      <button
+        className="underline text-lg"
+        onClick={() => {
+          setParticipants(null);
+          groupCreateRef.current?.close();
+        }}
+      >
+        close
+      </button>
     </div>
   );
 }
