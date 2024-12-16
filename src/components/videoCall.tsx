@@ -46,7 +46,8 @@ export default function VideoCall() {
 
         getMediaStream("VIDEO")
           .then((stream) => {
-            myStream = stream;
+            const videoTrack = stream.getVideoTracks()[0];
+            myStream = new MediaStream([videoTrack]);
             const myStreamVideoElement = document.getElementById(
               "myStreamVideoElement"
             ) as HTMLVideoElement;
@@ -136,6 +137,7 @@ export default function VideoCall() {
   useEffect(() => {
     if (callEnded) {
       console.log("clearing mystream tracks");
+      myStream?.getTracks().forEach((track) => track.stop());
       myStream?.getTracks().forEach((track) => track.stop());
       myStream = null;
       clearMediaStream();
