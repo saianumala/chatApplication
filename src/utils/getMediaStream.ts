@@ -10,10 +10,14 @@ export async function getMediaStream(type: "VIDEO" | "AUDIO") {
     };
     mediaConstraints.audio = {
       echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
     };
   } else if (type === "AUDIO") {
     mediaConstraints.audio = {
       echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
     };
   }
   if (!stream) {
