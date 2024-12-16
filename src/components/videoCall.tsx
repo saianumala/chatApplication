@@ -347,21 +347,27 @@ export default function VideoCall() {
                     : "")
                 }p-4`}
               >
-                {streamerMediaStreams?.map((stream, index) => (
-                  <video
-                    key={stream?.remoteStreamerId}
-                    className={`w-full h-full ${
-                      streamerMediaStreams.length === 1 ? "absolute" : "block"
-                    } bg-gray-700 rounded-lg object-cover`}
-                    autoPlay
-                    playsInline
-                    ref={(video) => {
-                      if (video) {
-                        video.srcObject = stream.mediaStream;
-                      }
-                    }}
-                  ></video>
-                ))}
+                {streamerMediaStreams?.map((stream, index) => {
+                  if (stream) {
+                    return (
+                      <video
+                        key={stream?.remoteStreamerId}
+                        className={`w-full h-full ${
+                          streamerMediaStreams.length === 1
+                            ? "absolute"
+                            : "block"
+                        } bg-gray-700 rounded-lg object-cover`}
+                        autoPlay
+                        playsInline
+                        ref={(video) => {
+                          if (video) {
+                            video.srcObject = stream?.mediaStream;
+                          }
+                        }}
+                      ></video>
+                    );
+                  }
+                })}
               </div>
             </div>
             <div className="absolute transform -translate-x-1/2 left-2/4 bottom-1/4">
