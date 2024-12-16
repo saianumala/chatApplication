@@ -286,3 +286,11 @@ export const newContactmobileNumberAtom = atom<string | null>({
   key: "newContactmobileNumberAtom",
   default: null,
 });
+export const availableCamerasAtom = atom<MediaDeviceInfo[]>({
+  key: "availableCamerasAtom",
+  default: [],
+});
+export const selectedCameraAtom = atom<MediaDeviceInfo | null>({
+  key: "availableCamerasAtom",
+  default: null,
+});

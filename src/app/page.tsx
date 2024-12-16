@@ -9,8 +9,9 @@ import {
   videoCallAtom,
 } from "@/recoil_store/src/atoms/atoms";
 import { useSession } from "next-auth/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import CallProvider from "@/components/callProvider";
+import { getMediaStream } from "@/utils/getMediaStream";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -24,6 +25,9 @@ export default function Home() {
       router.push("user/signin");
     }
   }, []);
+
+  const a = [1, 2, 3, 4, 5, 6, 7, 8];
+  const [stream, setStream] = useState<MediaStream | null>(null);
   return (
     <div className="relative h-screen w-screen">
       <div
@@ -60,6 +64,52 @@ export default function Home() {
           )}
         </div>
       </div>{" "}
+      {/* <div
+        className={`${
+          a.length === 0
+            ? "hidden"
+            : "absolute  -translate-x-[50%] -translate-y-[50%] top-2/4 left-2/4 w-3/5 sm:w-3/4 bg-gray-600 h-3/4"
+        } `}
+      >
+        <div
+          className={`w-full h-full gap-2 grid ${
+            a.length === 2
+              ? " grid-rows-2 sm:grid-cols-2"
+              : a.length >= 3 && a.length <= 4
+              ? "grid-cols-2"
+              : a.length >= 5 && a.length <= 9
+              ? "grid-cols-3"
+              : ""
+          }`}
+        >
+          {a.map(() => {
+            return (
+              <div
+                className={`
+                
+                 bg-gray-950`}
+              >
+              
+                {getMediaStream("VIDEO").then((mystream) => {
+                  if (!stream) {
+                    setStream(mystream);
+                  }
+                  return (
+                    <video
+                      ref={(video) => {
+                        if (video) {
+                          video.srcObject = mystream;
+                        }
+                      }}
+                    ></video>
+                  );
+                })}
+               
+              </div>
+            );
+          })}
+        </div>
+      </div> */}
     </div>
   );
 }

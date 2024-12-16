@@ -10,7 +10,7 @@ function CallProvider() {
   const videoCall = useRecoilValue(videoCallAtom);
   return (
     <div className="w-full h-full">
-      {videoCall && (
+      {true && (
         <div className="w-full h-full ">
           <VideoCall />
         </div>
