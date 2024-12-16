@@ -22,13 +22,12 @@ function SignInComponent() {
           e.preventDefault();
           console.log(email, password);
           const res = await signIn("credentials", {
-            redirect: false,
             user: email,
             password: password,
           });
 
           if (res?.ok) {
-            router.push(`${process.env.NEXTAUTH_URL}`);
+            // router.push(`${process.env.NEXTAUTH_URL}`);
           } else {
             setsigninError((prev) => !prev);
 
