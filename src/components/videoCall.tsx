@@ -349,7 +349,7 @@ export default function VideoCall() {
               >
                 {streamerMediaStreams?.map((stream, index) => (
                   <video
-                    key={stream.remoteStreamerId}
+                    key={stream?.remoteStreamerId}
                     className={`w-full h-full ${
                       streamerMediaStreams.length === 1 ? "absolute" : "block"
                     } bg-gray-700 rounded-lg object-cover`}
