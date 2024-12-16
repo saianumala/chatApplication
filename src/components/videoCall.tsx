@@ -157,6 +157,7 @@ export default function VideoCall() {
             <video
               playsInline
               autoPlay
+              muted
               className="w-full h-full object-cover"
               id="myStreamVideoElement"
             ></video>
@@ -201,6 +202,7 @@ export default function VideoCall() {
             <video
               playsInline
               autoPlay
+              muted
               className="w-full h-full bg-blue-300 z-10 object-cover"
               id="myStreamVideoElement"
             ></video>
@@ -261,6 +263,7 @@ export default function VideoCall() {
               <video
                 playsInline
                 autoPlay
+                muted
                 className="w-full h-full object-cover"
                 id="myStreamVideoElement"
               ></video>
