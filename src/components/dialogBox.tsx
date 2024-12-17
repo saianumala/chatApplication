@@ -12,7 +12,7 @@ export function DialogBox({
   // const dialogRef = useRef<HTMLDialogElement|null>(null)
   return (
     <dialog
-      className="backdrop:black/50 bg-slate-700 -translate-x-[50%] -translate-y-[50%] top-2/4 left-2/4 text-white  w-4/6 h-4/6"
+      className="backdrop:black/50  w-2/4 bg-slate-400   -translate-x-[50%] -translate-y-[50%] top-2/4 left-2/4 "
       ref={dialogRef}
     >
       {children}

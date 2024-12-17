@@ -37,6 +37,7 @@ export const searchedContactsAtom = atom<
       contactID: string;
       contactName: string;
       mobileNumber: string;
+      hasAccount: boolean;
     }[]
   | null
 >({
@@ -49,6 +50,7 @@ export const contactsAtom = atom<
       savedById: string;
       mobileNumber: string;
       contactName: string;
+      hasAccount: boolean;
     }[]
   | null
 >({
@@ -291,6 +293,11 @@ export const availableCamerasAtom = atom<MediaDeviceInfo[]>({
   default: [],
 });
 export const selectedCameraAtom = atom<MediaDeviceInfo | null>({
-  key: "availableCamerasAtom",
+  key: "selectedCameraAtom",
+  default: null,
+});
+
+export const showOptionsForIdAtom = atom<string | null>({
+  key: "showOptionsForIdAtom",
   default: null,
 });

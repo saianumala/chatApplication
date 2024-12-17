@@ -10,7 +10,12 @@ export async function GET(req: NextRequest) {
 
   console.log("searchValue", searchValue);
   const session = await getServerSession(authOptions);
-
+  let contactDetails: {
+    contactId: string;
+    mobileNumber: string;
+    contactName: string;
+    hasAccount: boolean;
+  }[] = [];
   try {
     if (!session || !session.user.mobileNumber) {
       throw new Error("please login");
@@ -18,7 +23,8 @@ export async function GET(req: NextRequest) {
     if (!searchValue) {
       throw new Error("Search term is required");
     }
-    const result = await prisma.contact.findMany({
+
+    const contacts = await prisma.contact.findMany({
       where: {
         savedById: session.user.userId,
 
@@ -43,13 +49,20 @@ export async function GET(req: NextRequest) {
         contactName: true,
       },
     });
-    console.log("result:", result);
-    if (!result) {
+
+    console.log("contacts:", contacts);
+    if (!contacts) {
       console.log("inside error");
       throw new Error();
     }
+    for (const contact of contacts) {
+      const account = await prisma.user.findUnique({
+        where: { mobileNumber: contact.mobileNumber },
+      });
+      contactDetails.push({ ...contact, hasAccount: !!account });
+    }
     console.log("outside error and before return");
-    return NextResponse.json({ data: result });
+    return NextResponse.json({ data: contactDetails }, { status: 200 });
   } catch (error) {
     // console.log("error", error);
     console.log("database call failed", error);

@@ -4,15 +4,21 @@ import {
   conversationsAtom,
   messagesAtom,
 } from "@/recoil_store/src/atoms/atoms";
+import {
+  closeConversation,
+  openConversation,
+} from "@/utils/openAndCloseConversations";
 import { useWebSocketHandler } from "@/utils/webSocetConnection";
 import { error } from "console";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useRecoilState, useSetRecoilState } from "recoil";
 
 export function DisplayConversations() {
   const { data: session } = useSession();
   const socket = useWebSocketHandler();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   console.log("session: ", session);
   const setMessages = useSetRecoilState(messagesAtom);
@@ -91,32 +97,11 @@ export function DisplayConversations() {
     }
     if (session) {
       fetchConversations();
+    } else {
+      router.push("/user/signin");
     }
   }, [session]);
-  function closeConversation() {
-    socket?.send(
-      JSON.stringify({
-        messageType: "closeConversation",
-        messageData: {
-          messageContent: "conversationClosed",
-          conversationId: selectedConversation?.conversation.conversation_id,
-          senderId: session?.user.userId,
-        },
-      })
-    );
-  }
-  function openConversation(conversationId: string) {
-    socket?.send(
-      JSON.stringify({
-        messageType: "openConversation",
-        messageData: {
-          messageContent: "conversationOpened",
-          conversationId: conversationId,
-          senderId: session?.user.userId,
-        },
-      })
-    );
-  }
+
   async function handleChat(chosenConversation: {
     DateModified: Date;
 
@@ -138,18 +123,22 @@ export function DisplayConversations() {
       `api/conversation/getConversation?conversationId=${chosenConversation.conversation_id}`
     );
     const conversationMessagesData = await conversationMessagesResponse.json();
-    closeConversation();
-    // console.log("previous selection", selectedConversation);
-    openConversation(chosenConversation.conversation_id);
+    closeConversation({
+      socket: socket,
+      selectedConversation: selectedConversation,
+      userId: session?.user.userId,
+    });
+    openConversation({
+      conversationId: chosenConversation.conversation_id,
+      socket: socket,
+      userId: session?.user.userId,
+    });
     console.log("selected conversation: ", chosenConversation);
     setselectedConversation({ conversation: chosenConversation });
-    // console.log("new selectedConversation", selectedConversation);
     setMessages(conversationMessagesData.conversationMessages.messages);
   }
   console.log("new conversaions: ", conversations);
-  conversations?.map((conversation) => {
-    console.log("new", conversation.conversation);
-  });
+
   return (
     <div className="flex-1 h-full w-full overflow-y-auto">
       {conversations ? (

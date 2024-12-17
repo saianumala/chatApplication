@@ -15,6 +15,14 @@ export async function GET(req: NextRequest) {
     if (!myNumber || !friendNumber) {
       throw new Error("numbers are required to get conversation");
     }
+    const friendAccount = await prisma.user.findUnique({
+      where: {
+        mobileNumber: friendNumber,
+      },
+    });
+    if (!friendAccount) {
+      return NextResponse.json({ message: "inviteFriend" }, { status: 200 });
+    }
     const friendsContact = await prisma.contact.findUnique({
       where: {
         savedById_mobileNumber: {
@@ -80,10 +88,14 @@ export async function GET(req: NextRequest) {
     });
     if (!conversation) {
       console.log(conversation);
-      throw new Error("no conversation");
+      return NextResponse.json(
+        { message: "conversationNotFound" },
+        { status: 200 }
+      );
     }
     return NextResponse.json(
       {
+        message: "conversationFound",
         conversation: {
           ...conversation,
           conversationName: friendsContact?.contactName,
@@ -93,6 +105,9 @@ export async function GET(req: NextRequest) {
     );
   } catch (error: any) {
     console.log(error);
-    return NextResponse.json({ message: error.message }, { status: 400 });
+    return NextResponse.json(
+      { message: error.message, error: error },
+      { status: 400 }
+    );
   }
 }

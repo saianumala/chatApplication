@@ -7,7 +7,13 @@ import {
   searchedContactsAtom,
   searchValueAtom,
 } from "@/recoil_store/src/atoms/atoms";
+import {
+  closeConversation,
+  openConversation,
+} from "@/utils/openAndCloseConversations";
+import { useWebSocketHandler } from "@/utils/webSocetConnection";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import React, { MutableRefObject, useEffect } from "react";
 import { useRecoilState, useSetRecoilState } from "recoil";
 
@@ -16,6 +22,9 @@ export default function SearchContacts({
 }: {
   searchRef: MutableRefObject<HTMLDialogElement | null>;
 }) {
+  const { data: session } = useSession();
+  const socket = useWebSocketHandler();
+  const router = useRouter();
   const setMessages = useSetRecoilState(messagesAtom);
   const [selectedConversation, setselectedConversation] =
     useRecoilState(conversationAtom);
@@ -28,13 +37,13 @@ export default function SearchContacts({
   const [searchedContacts, setSearchedContacts] =
     useRecoilState(searchedContactsAtom);
   const [searchValue, setSearchValue] = useRecoilState(searchValueAtom);
-  const session = useSession();
 
   useEffect(() => {
     fetch(`api/getSearchedUsers?searchValue=${searchValue}`)
       .then((data) => data.json())
       .then((data) => {
         console.log("searchedContact data: ", data);
+
         setSearchedContacts(data.data);
       });
   }, [searchValue]);
@@ -42,22 +51,20 @@ export default function SearchContacts({
   async function checkConversation(friendNumber: string) {
     try {
       console.log("friendNumber", friendNumber);
-      console.log("myNumber, ", session?.data?.user.mobileNumber);
+      console.log("myNumber, ", session?.user.mobileNumber);
       const response = await fetch(
-        `/api/conversation/check?myNumber=${session.data?.user.mobileNumber}&friendNumber=${friendNumber}`
+        `/api/conversation/check?myNumber=${session?.user.mobileNumber}&friendNumber=${friendNumber}`
       );
       const data = await response.json();
-      console.log(data);
+      console.log("check conversation data", data);
       if (response.ok) {
         console.log(data);
         return data;
+      } else {
+        console.error("error while checking conversation: ", data.error);
       }
     } catch (error: any) {
-      if (error.response && error.response.status === 404) {
-        return null;
-      }
-      console.error("Error checking conversation:", error);
-      throw error;
+      console.error("Error while checking conversation:", error);
     }
   }
   function conversationAndMessageSelection(conversation: any) {
@@ -67,6 +74,16 @@ export default function SearchContacts({
     );
     if (conversation && conversation.conversation.messages) {
       console.log("conversation messages", conversation.conversation.messages);
+      closeConversation({
+        socket: socket,
+        selectedConversation: selectedConversation,
+        userId: session?.user.userId,
+      });
+      openConversation({
+        conversationId: conversation.conversation.conversation_id,
+        socket: socket,
+        userId: session?.user.userId,
+      });
       setselectedConversation(conversation);
       setMessages(conversation.conversation.messages);
     } else {
@@ -81,7 +98,7 @@ export default function SearchContacts({
         method: "POST",
         body: JSON.stringify({
           type: "NORMAL",
-          myNumber: session.data?.user.mobileNumber,
+          myNumber: session?.user.mobileNumber,
           friendNumber: friendNumber,
         }),
         headers: {
@@ -90,7 +107,7 @@ export default function SearchContacts({
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error();
+        throw new Error(data.message);
       } else {
         return data;
       }
@@ -109,47 +126,66 @@ export default function SearchContacts({
       mobileNumber: string;
     };
   }) {
-    let conversation = await checkConversation(searchedContact.mobileNumber);
-    console.log("conversaton after check", conversation);
-    if (!conversation) {
+    let checkedData = await checkConversation(searchedContact.mobileNumber);
+    console.log("conversaton after check", checkedData);
+    if (checkedData.message === "inviteFriend") {
+      alert("invite your friend");
+    } else if (checkedData.message === "conversationFound") {
+      conversationAndMessageSelection(checkedData);
+    } else if (checkedData.message === "conversationNotFound") {
       const createConversationData = await createConversation(
         searchedContact.mobileNumber
       );
       conversationAndMessageSelection(createConversationData);
     } else {
-      console.log("Conversation found:", conversation);
-      conversationAndMessageSelection(conversation);
+      console.log("error", checkedData.message);
     }
   }
 
   return (
-    <div className="relative w-3/4">
+    <div className="flex flex-col gap-1 w-3/4 p-2">
       <input
-        className="outline-none w-full text-black rounded-md"
+        className="outline-none p-2 w-full text-black rounded-md"
         type="search"
         placeholder="search contacts"
         onChange={(e) => setSearchValue(e.target.value)}
       />
-      <div>
+      <div className="flex flex-col gap-1 bg-white rounded-md ">
         {searchedContacts?.map((searchedContact) => (
-          <button
-            className="bg-white text-black w-full"
+          <div
             key={searchedContact.contactID}
-            onClick={() => {
-              setDisplayCallLogs(false);
-              setDisplayContacts(false);
-              setDisplayConversations(true);
-              handleConversation({ searchedContact });
-              searchRef.current?.close();
-            }}
+            className="flex p-1 justify-evenly items-center border-solid border-b-2 rounded-md border-black"
           >
-            {searchedContact.contactName}
-          </button>
+            <button
+              disabled={!searchedContact.hasAccount}
+              className=" text-black w-full "
+              key={searchedContact.contactID}
+              onClick={() => {
+                setDisplayCallLogs(false);
+                setDisplayContacts(false);
+                setDisplayConversations(true);
+                handleConversation({ searchedContact });
+                setSearchedContacts(null);
+                searchRef.current?.close();
+              }}
+            >
+              {searchedContact.contactName}
+            </button>
+
+            {!searchedContact.hasAccount && (
+              <button className="bg-slate-400 hover:scale-105 transition-all active:bg-slate-500 p-1 rounded-md">
+                invite
+              </button>
+            )}
+          </div>
         ))}
       </div>
       <button
+        className="w-full text-center underline"
         onClick={() => {
           console.log("search ref current", searchRef.current);
+          setSearchedContacts(null);
+
           searchRef.current?.close();
         }}
       >

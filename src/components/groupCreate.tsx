@@ -58,8 +58,8 @@ export function GroupCreate({
     }
   }
   return (
-    <div className="w-10/12 mt-2 flex flex-col items-center justify-center">
-      <div className="p-2 bg-slate-400">
+    <div className="w-full h-full flex overflow-y-auto flex-col bg-slate-400 items-center justify-center">
+      <div className="p-2 w-full h-full ">
         <div className="p-2 flex gap-3">
           <label htmlFor="groupName">Group Name</label>
           <input
@@ -69,10 +69,11 @@ export function GroupCreate({
             placeholder="name"
           />
         </div>
-        <div className="flex flex-col w-full p-1 gap-3">
+        <div className="flex flex-col w-full max-h-[300px] p-1 gap-3">
           <h1>{errorMessge}</h1>
-          <div className="flex flex-col w-full">
-            <h1 className="bg-slate-700 w-full">participants</h1>
+          <h1 className="bg-slate-700 w-full">participants</h1>
+
+          <div className="flex flex-col w-full overflow-y-auto">
             {participants &&
               Object.values(participants)?.map((participant) => (
                 <div
@@ -96,13 +97,13 @@ export function GroupCreate({
                   </button>
                 </div>
               ))}
-            {participants && Object.keys(participants).length > 0 && (
-              <button onClick={createGroup}>create</button>
-            )}
           </div>
+          {participants && Object.keys(participants).length > 0 && (
+            <button onClick={createGroup}>create</button>
+          )}
 
-          <div className="w-full">
-            <h1 className="bg-slate-700">contacts</h1>
+          <h1 className="bg-slate-700">contacts</h1>
+          <div className="w-full  overflow-y-auto">
             {contacts &&
               contacts.map((eachContact) => {
                 const isAdded = participants
