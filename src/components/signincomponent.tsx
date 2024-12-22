@@ -25,13 +25,12 @@ function SignInComponent() {
             user: email,
             password: password,
           });
-
-          if (res?.ok) {
-            // router.push(`${process.env.NEXTAUTH_URL}`);
-          } else {
-            setsigninError((prev) => !prev);
-
-            console.log(res?.error);
+          if (res) {
+            if (res.ok) {
+              router.push(`${process.env.NEXTAUTH_URL}`);
+            } else if (!res.ok) {
+              setsigninError((prev) => !prev);
+            }
           }
         }}
         className="flex flex-col"

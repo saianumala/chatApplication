@@ -13,13 +13,38 @@ export async function GET(req: NextRequest) {
       where: {
         userId: session.user.userId,
       },
+      orderBy: {
+        callInformation: {
+          callStartedAt: "desc",
+        },
+      },
       select: {
         callInformation: {
           select: {
             conversation: {
               select: {
                 conversationName: true,
-                conversationParticipants: true,
+                conversationParticipants: {
+                  select: {
+                    participantNumber: true,
+                    user: {
+                      select: {
+                        myContacts: {
+                          where: {
+                            savedById: session.user.userId,
+                          },
+                        },
+                        contactSavedBy: {
+                          select: {
+                            contactName: true,
+                            savedById: true,
+                            mobileNumber: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
               },
             },
             callActive: true,
@@ -28,6 +53,7 @@ export async function GET(req: NextRequest) {
             callEndedAt: true,
           },
         },
+
         callDescriptionId: true,
         callDirection: true,
         callInformationId: true,
@@ -35,14 +61,9 @@ export async function GET(req: NextRequest) {
         joined: true,
       },
     });
-    if (!userCallLogs || userCallLogs.length === 0) {
-      return NextResponse.json(
-        { message: "no logs found", callLogs: [] },
-        { status: 200 }
-      );
-    }
+
     return NextResponse.json(
-      { message: "logs found", callLogs: userCallLogs },
+      { message: "logs found", callLogs: userCallLogs ?? [] },
       { status: 200 }
     );
   } catch (error) {

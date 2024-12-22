@@ -61,7 +61,7 @@ function useWebSocketHandler(): WebSocket | null {
   console.log("websocketHandler");
   function shufflingConversations(messageData: any) {
     setConversations((prevConversations) => {
-      console.log("inside setConversations");
+      // console.log("inside setConversations");
       if (!prevConversations) {
         return [];
       } else {
@@ -87,7 +87,7 @@ function useWebSocketHandler(): WebSocket | null {
   }, [selectedConversation]);
 
   useEffect(() => {
-    console.log("env var", process.env.NEXT_PUBLIC_WS_URL);
+    // console.log("env var", process.env.NEXT_PUBLIC_WS_URL);
     const connectWebSocket = () => {
       const newSocket = new WebSocket(
         `${process.env.NEXT_PUBLIC_WS_URL}/c?clientId=${session?.user.userId}`
@@ -106,11 +106,11 @@ function useWebSocketHandler(): WebSocket | null {
       newSocket.onmessage = async (message) => {
         const messageData = JSON.parse(message.data);
 
-        console.log(
-          "messageType check inside websocketconnecion: ",
-          messageData.messageType
-        );
-        console.log("message data: ", messageData);
+        // console.log(
+        //   "messageType check inside websocketconnecion: ",
+        //   messageData.messageType
+        // );
+        // console.log("message data: ", messageData);
         switch (messageData.messageType) {
           case "newMessage":
             setMessages((prev) =>
@@ -169,12 +169,12 @@ function useWebSocketHandler(): WebSocket | null {
             );
             break;
           case "incomingCall":
-            console.log("incoming call: ", messageData);
+            // console.log("incoming call: ", messageData);
             const typeOfCall: string = messageData.callType;
 
             if (typeOfCall === "video") {
               setCallType("video");
-              console.log("inside calltype video");
+              // console.log("inside calltype video");
               setVideoCall(true);
               setIncomingCall(true);
               setIncomingCallMessageData(messageData);
@@ -229,15 +229,15 @@ function useWebSocketHandler(): WebSocket | null {
             await consumeData(messageData, setRemoteTracks);
             break;
           case "leftTheCall":
-            console.log("remote user id:", messageData.userId);
+            // console.log("remote user id:", messageData.userId);
             const userId: string = messageData.userId;
             const remoteMediaStreamElement = document.getElementById(
               userId
             ) as HTMLVideoElement;
-            console.log(
-              "Remotemedia stream element:",
-              remoteMediaStreamElement
-            );
+            // console.log(
+            //   "Remotemedia stream element:",
+            //   remoteMediaStreamElement
+            // );
             remoteMediaStreamElement?.remove();
             setRemoteTracks((prevTracks) => {
               prevTracks &&

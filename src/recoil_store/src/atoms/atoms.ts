@@ -1,5 +1,4 @@
 import { atom, selector } from "recoil";
-
 export const messagesAtom = atom<
   | {
       message_id: string;
@@ -18,6 +17,12 @@ export const messagesAtom = atom<
 >({
   key: "messagesAtom",
   default: null,
+});
+export const usersDetailsAtom = atom<{
+  userId: string | null;
+  myMobileNumber: string | null;
+} | null>({
+  key: "usersDetailsAtom",
 });
 export const searchValueAtom = atom<string | null>({
   key: "searchValueAtom",
@@ -46,11 +51,16 @@ export const searchedContactsAtom = atom<
 });
 export const contactsAtom = atom<
   | {
-      contactId: string;
-      savedById: string;
       mobileNumber: string;
+      savedById: string;
       contactName: string;
-      hasAccount: boolean;
+      contactId: string;
+      friendsUserAccount: {
+        id: string;
+        email: string;
+        mobileNumber: string;
+        password: string;
+      } | null;
     }[]
   | null
 >({
@@ -59,10 +69,16 @@ export const contactsAtom = atom<
 });
 
 export const selectedContactAtom = atom<{
-  contactId: string;
-  savedById: string;
   mobileNumber: string;
+  savedById: string;
   contactName: string;
+  contactId: string;
+  friendsUserAccount: {
+    id: string;
+    email: string;
+    mobileNumber: string;
+    password: string;
+  } | null;
 } | null>({
   key: "selectedContactAtom",
   default: null,
@@ -111,6 +127,78 @@ export const conversationAtom = atom<{
 } | null>({
   key: "conversationAtom",
   default: null,
+});
+
+export const updatedSelectedConversationSelector = selector({
+  key: "updatedSelectedConversationSelector",
+  get: ({ get }) => {
+    const newSelectedConversation = get(conversationAtom);
+    const contacts = get(contactsAtom);
+    const usersDetails = get(usersDetailsAtom);
+    console.log(
+      "updat selected conversation triggered: ",
+      newSelectedConversation
+    );
+    if (newSelectedConversation) {
+      const otherParticipants =
+        newSelectedConversation.conversation.conversationParticipants.filter(
+          (participant) =>
+            participant.participantNumber !== usersDetails?.myMobileNumber
+        );
+      console.log("otherParticipants: ", otherParticipants);
+      if (
+        newSelectedConversation.conversation.type === "GROUP" ||
+        otherParticipants.length > 1
+      ) {
+        console.log("group conversation");
+        return {
+          ...newSelectedConversation.conversation,
+          showAddContactUi: false,
+          participantNumber: otherParticipants[0].participantNumber,
+        };
+      }
+      if (!contacts || contacts.length === 0) {
+        console.log("no contacts");
+        return {
+          ...newSelectedConversation.conversation,
+          showAddContactUi: true,
+          participantNumber: otherParticipants[0].participantNumber,
+        };
+      }
+      const otherParticipantscontact = contacts
+        .map((contact, index) => {
+          console.log(`contact ${index + 1} is ${contact.contactName}`);
+          if (contact.mobileNumber === otherParticipants[0].participantNumber) {
+            console.log("contact.mobileNumber: ", contact.mobileNumber);
+            console.log(
+              "otherParticipants[0].participantNumber: ",
+              otherParticipants[0].participantNumber
+            );
+            return contact;
+          } else {
+            return null;
+          }
+        })
+        .find((contactFound) => contactFound !== null);
+
+      console.log("other participants contact: ", otherParticipantscontact);
+      return otherParticipantscontact
+        ? {
+            ...newSelectedConversation.conversation,
+            conversationName: otherParticipantscontact.contactName,
+            showAddContactUi: false,
+            participantNumber: otherParticipants[0].participantNumber,
+          }
+        : {
+            ...newSelectedConversation.conversation,
+            showAddContactUi: true,
+            participantNumber: otherParticipants[0].participantNumber,
+          };
+    } else {
+      console.log("conversation not selected");
+      return null;
+    }
+  },
 });
 
 export const conversationParticipantsAtom = atom<string[] | null>({
@@ -178,37 +266,7 @@ export const remoteTracksAtom = atom<
   key: "remoteTracksAtom",
   default: null,
 });
-// export const conversationDetailsSelector = selector({
-//   key: "conversationDetailsSelector",
-//   get: ({get}) => {
-//     const conversations = get(conversationsAtom)
-//     const contacts = get(contactsAtom)
-//     if(!conversations){
-//       return null
-//     }
-//     const newConversations = conversations?.map(
-//           (conversation) => {
-//             if (conversation.conversation.conversationParticipants.length === 2) {
-//               const otherParticipant =
-//               conversation.conversation.conversationParticipants.filter(
-//                   (conversationParticipant) =>
-//                     conversationParticipant !== session?.user.mobileNumber
-//                 );
-//               const otherParticipantContact = contacts?.filter(
-//                 (contact: any) =>
-//                   contact.mobileNumber === otherParticipant.participantNumber
-//               );
-//               return {
-//                 ...conversation,
-//                 contactName: otherParticipantContact.contactName,
-//               };
-//             }
-//             return conversation;
-//           }
-//         );
-//         return newConversations;
-//   }
-// })
+
 export const remoteMediaStreamsSelector = selector({
   key: "remoteMediaStreamsSelector",
   get: ({ get }) => {
@@ -299,5 +357,16 @@ export const selectedCameraAtom = atom<MediaDeviceInfo | null>({
 
 export const showOptionsForIdAtom = atom<string | null>({
   key: "showOptionsForIdAtom",
+  default: null,
+});
+
+export const groupCreateParticipantsAtom = atom<{
+  [participantNumber: string]: {
+    contactId: string;
+    participantNumber: string;
+    contactName: string;
+  };
+} | null>({
+  key: "groupCreateParticipantsAtom",
   default: null,
 });

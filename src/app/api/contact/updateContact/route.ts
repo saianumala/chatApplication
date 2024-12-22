@@ -16,7 +16,7 @@ export async function PATCH(req: NextRequest) {
     if (contactName === "") {
       throw new Error("field should not be empty");
     }
-    await prisma.contact.update({
+    const updatedContact = await prisma.contact.update({
       where: {
         savedById_mobileNumber: {
           mobileNumber: mobileNumber,
@@ -25,9 +25,20 @@ export async function PATCH(req: NextRequest) {
       },
       data: {
         contactName: contactName,
+        mobileNumber,
       },
     });
-    return NextResponse.json({ message: "success" }, { status: 200 });
+    // const account = await prisma.user.findUnique({
+    //   where: { mobileNumber: mobileNumber },
+    // });
+
+    return NextResponse.json(
+      {
+        message: "success",
+        updatedContact: updatedContact,
+      },
+      { status: 200 }
+    );
   } catch (error: any) {
     return NextResponse.json({ message: error.message }, { status: 400 });
   }

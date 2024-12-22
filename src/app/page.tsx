@@ -2,10 +2,12 @@
 import { useRouter } from "next/navigation";
 import AllConversations from "@/components/allConversations";
 import ChatRoom from "@/components/chatRoom";
-import { useRecoilValue } from "recoil";
+import { useRecoilValue, useResetRecoilState, useSetRecoilState } from "recoil";
 import {
   audioCallAtom,
+  contactsAtom,
   conversationAtom,
+  usersDetailsAtom,
   videoCallAtom,
 } from "@/recoil_store/src/atoms/atoms";
 import { useSession } from "next-auth/react";
@@ -19,15 +21,30 @@ export default function Home() {
   const videoCall = useRecoilValue(videoCallAtom);
   const audioCall = useRecoilValue(audioCallAtom);
   const router = useRouter();
-  console.error("home page rerendered");
+  const setContacts = useSetRecoilState(contactsAtom);
+  const setUsersDetails = useSetRecoilState(usersDetailsAtom);
+  console.log("home page rerendered");
   useEffect(() => {
+    console.log("inside use Effect");
+
     if (!session || !session.user.userId) {
+      setUsersDetails(null);
       router.push("user/signin");
+    } else if (session && session.user) {
+      const userId = session.user.userId;
+      const myMobileNumber = session.user.mobileNumber;
+      setUsersDetails({
+        userId: userId || null,
+        myMobileNumber: myMobileNumber || null,
+      });
+      fetch("api/contact/getContacts").then(async (contactsJsonData) => {
+        const parsedData = await contactsJsonData.json();
+        // console.log("parsed Data", parsedData);
+        setContacts(parsedData.contacts);
+      });
     }
   }, []);
 
-  const a = [1, 2, 3, 4, 5, 6, 7, 8];
-  const [stream, setStream] = useState<MediaStream | null>(null);
   return (
     <div className="relative h-screen w-screen">
       <div
@@ -64,52 +81,6 @@ export default function Home() {
           )}
         </div>
       </div>{" "}
-      {/* <div
-        className={`${
-          a.length === 0
-            ? "hidden"
-            : "absolute  -translate-x-[50%] -translate-y-[50%] top-2/4 left-2/4 w-3/5 sm:w-3/4 bg-gray-600 h-3/4"
-        } `}
-      >
-        <div
-          className={`w-full h-full gap-2 grid ${
-            a.length === 2
-              ? " grid-rows-2 sm:grid-cols-2"
-              : a.length >= 3 && a.length <= 4
-              ? "grid-cols-2"
-              : a.length >= 5 && a.length <= 9
-              ? "grid-cols-3"
-              : ""
-          }`}
-        >
-          {a.map(() => {
-            return (
-              <div
-                className={`
-                
-                 bg-gray-950`}
-              >
-              
-                {getMediaStream("VIDEO").then((mystream) => {
-                  if (!stream) {
-                    setStream(mystream);
-                  }
-                  return (
-                    <video
-                      ref={(video) => {
-                        if (video) {
-                          video.srcObject = mystream;
-                        }
-                      }}
-                    ></video>
-                  );
-                })}
-               
-              </div>
-            );
-          })}
-        </div>
-      </div> */}
     </div>
   );
 }

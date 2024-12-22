@@ -1,5 +1,6 @@
 import {
   contactNameAtom,
+  contactsAtom,
   newContactmobileNumberAtom,
 } from "@/recoil_store/src/atoms/atoms";
 import { FormEvent, MutableRefObject } from "react";
@@ -10,6 +11,7 @@ export function AddContact({
 }: {
   addContactRef: MutableRefObject<HTMLDialogElement | null>;
 }) {
+  const setContacts = useSetRecoilState(contactsAtom);
   const setContactName = useSetRecoilState(contactNameAtom);
   const [newContactMobileNumber, setNewContactMobileNumber] = useRecoilState(
     newContactmobileNumberAtom
@@ -27,8 +29,17 @@ export function AddContact({
         "content-type": "application/json",
       },
     });
+    const resData = await res.json();
     if (res.ok) {
       console.log("contact saved");
+      console.log(resData.newContact);
+      setContacts((prevContacts) => {
+        const updatedContacts = prevContacts
+          ? [...prevContacts, resData.newContact]
+          : [resData.newContact];
+
+        return updatedContacts;
+      });
       setContactName(null);
       setNewContactMobileNumber(null);
       addContactRef?.current?.close();
@@ -46,6 +57,7 @@ export function AddContact({
           <div>
             <label htmlFor="contactName">Name</label>
             <input
+              required={true}
               onChange={(e) => setContactName(e.target.value)}
               className="text-black p-2 w-full rounded-md"
               name="contactName"
@@ -57,6 +69,8 @@ export function AddContact({
           <div>
             <label htmlFor="mobileNumber">number</label>
             <input
+              minLength={10}
+              required={true}
               onChange={(e) => setNewContactMobileNumber(e.target.value)}
               id="newContactmobileNumber"
               className="text-black p-2 w-full rounded-md"

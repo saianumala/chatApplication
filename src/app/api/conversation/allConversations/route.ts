@@ -29,6 +29,11 @@ export async function GET(req: NextRequest) {
                     id: true,
                     conversationId: true,
                     participantNumber: true,
+                    user: {
+                      select: {
+                        myContacts: true,
+                      },
+                    },
                   },
                 },
                 ReadStatus: {

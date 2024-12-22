@@ -28,7 +28,7 @@ export async function getMediaStream(type: "VIDEO" | "AUDIO") {
 }
 export function clearMediaStream() {
   if (stream) {
-    console.log("before clearing stream", stream);
+    console.log("before clearing stream in getmediastream", stream);
 
     stream?.getTracks().forEach((track) => track.stop());
     stream = null;

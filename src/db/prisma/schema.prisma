@@ -14,7 +14,8 @@ model User{
   password String
   messages Message[]
   conversations ConverstionParticipant[]
-  myContacts Contact[]
+  contactSavedBy  Contact[] @relation("friendsAccount")
+  myContacts Contact[] @relation("savedByAccount")
   ReadStatus ReadStatus[]
   callLogs callDescription[]
 }
@@ -74,7 +75,9 @@ model Contact{
   savedById String
   mobileNumber String 
   contactName String
-  user User @relation(fields: [savedById], references: [id])
+  friendsAccountId String?
+  friendsUserAccount User? @relation(fields: [friendsAccountId], references: [id], name: "friendsAccount")
+  savedByUserAccount User @relation(fields: [savedById], references: [id], name: "savedByAccount")
   @@unique([savedById, mobileNumber])
 }
 

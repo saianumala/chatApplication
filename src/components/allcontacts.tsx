@@ -8,6 +8,7 @@ import {
 import { MutableRefObject, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import Button from "./button";
+import { parse } from "path";
 
 export function AllContacts() {
   const { data: session } = useSession();
@@ -18,7 +19,10 @@ export function AllContacts() {
     mobileNumber: string;
     contactName: string;
   } | null>(null);
+  const [mobileNumber, setMobileNumber] = useState<string | null>(null);
+  const [contactName, setContactName] = useState<string | null>(null);
   const updateRef = useRef<HTMLDialogElement>(null);
+  const deleteRef = useRef<HTMLDialogElement>(null);
   const [contactToEdit, setContactToEdit] = useState<{
     contactId: string;
     savedById: string;
@@ -55,31 +59,69 @@ export function AllContacts() {
         <form
           className="flex flex-col gap-3 justify-center items-center"
           id="updateForm"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
             const updateFormElement = document.getElementById(
               "updateForm"
             ) as HTMLFormElement;
             const formData = new FormData(updateFormElement);
-            const name = formData.get("contactName");
-            const mobileNumber = formData.get("mobileNumber");
+            const updatedName = formData.get("contactName");
+            const updatedMobileNumber = formData.get("mobileNumber");
             console.log("name: ", name);
             console.log("number: ", mobileNumber);
-            setContactToEdit(null);
-            updateRef.current?.close();
+            const res = await fetch("/api/contact/updateContact", {
+              method: "PATCH",
+              body: JSON.stringify({
+                contactName: updatedName,
+                mobileNumber: updatedMobileNumber,
+              }),
+            });
+            const parsedData = await res.json();
+            if (res.ok) {
+              setContacts((prevContacts) => {
+                if (!prevContacts) {
+                  return null;
+                }
+
+                const filteredContacts = prevContacts.filter(
+                  (contact) =>
+                    contact.contactId !== parsedData.updatedContact.contactId
+                );
+                const updatedContacts = filteredContacts
+                  ? [...filteredContacts, { ...parsedData.updatedContact }]
+                  : [parsedData.updateContact];
+                console.log("updated contacts list: ", updatedContacts);
+                return updatedContacts;
+              });
+              console.log(parsedData);
+              setContactToEdit(null);
+              setMobileNumber(null);
+              setContactName(null);
+              updateRef.current?.close();
+            } else if (!res.ok) {
+              alert(parsedData?.message);
+            }
           }}
         >
           <input
             className="border-[1px] border-black border-solid bg-slate-200"
             name="contactName"
             type="text"
-            defaultValue={contactToEdit?.contactName}
+            minLength={1}
+            onChange={(e) => {
+              setContactName(e.target.value);
+            }}
+            value={contactName || ""}
           />
           <input
             className="border-[1px] border-black border-solid bg-slate-200"
             name="mobileNumber"
             type="text"
-            defaultValue={contactToEdit?.mobileNumber}
+            minLength={10}
+            onChange={(e) => {
+              setMobileNumber(e.target.value);
+            }}
+            value={mobileNumber || ""}
           />
           <div>
             <button
@@ -100,6 +142,58 @@ export function AllContacts() {
             </button>
           </div>
         </form>
+      </dialog>
+      <dialog
+        className="w-1/4 h-1/4  top-2/4 left-2/4 -translate-x-[50%] -translate-y-[50%]"
+        ref={deleteRef}
+      >
+        <div className="flex w-full h-full justify-center items-center ">
+          <div className="flex flex-col items-center justify-center  w-full h-full bg-slate-700">
+            <h1 className="text-lg font-bold">delete contact?</h1>
+
+            <div className="flex w-full justify-center  gap-2 items-center">
+              <button
+                onClick={async () => {
+                  const res = await fetch("/api/contact/deleteContact", {
+                    method: "DELETE",
+                    body: JSON.stringify({
+                      contactName: selectedContact?.contactName,
+                      mobileNumber: selectedContact?.mobileNumber,
+                    }),
+                  });
+                  const parsedData = await res.json();
+                  if (res.ok) {
+                    console.log(parsedData);
+                    setContacts((prevContacts) => {
+                      if (!prevContacts) return null;
+                      const updatedContacts = prevContacts.filter(
+                        (contact) =>
+                          contact.contactId !==
+                          parsedData.deletedContact.contactId
+                      );
+                      return updatedContacts;
+                    });
+                    deleteRef?.current?.close();
+                  } else if (!res.ok) {
+                    alert(parsedData.message);
+                  }
+                }}
+                className="bg-slate-400 p-2 rounded-md"
+              >
+                Yes
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedContact(null);
+                  deleteRef.current?.close();
+                }}
+                className="bg-slate-400 p-2 rounded-md"
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </div>
       </dialog>
       <div className="flex flex-col w-full h-full gap-2 overflow-y-auto">
         {contacts ? (
@@ -129,7 +223,7 @@ export function AllContacts() {
                       <h2>{contact.mobileNumber}</h2>
                     )}
                   </div>
-                  {!contact.hasAccount && (
+                  {!contact.friendsUserAccount && (
                     <div>
                       <button>invite</button>
                     </div>
@@ -159,7 +253,8 @@ export function AllContacts() {
                           className="hover:cursor-pointer bg-slate-400 p-1 rounded-md active:scale-95"
                           onClick={() => {
                             console.log(contact);
-
+                            setContactName(contact.contactName);
+                            setMobileNumber(contact.mobileNumber);
                             setContactToEdit(contact);
                             updateRef?.current?.showModal();
                             setShowOptionsForId(null);
@@ -167,7 +262,15 @@ export function AllContacts() {
                         >
                           update
                         </li>
-                        <li className="hover:pointer">delete</li>
+                        <li
+                          onClick={() => {
+                            setSelectedContact(contact);
+                            deleteRef.current?.showModal();
+                          }}
+                          className="hover:cursor-pointer bg-slate-400 p-1 rounded-md active:scale-95"
+                        >
+                          delete
+                        </li>
                       </ul>
                     )}
                   </div>

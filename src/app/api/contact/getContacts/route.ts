@@ -5,12 +5,7 @@ import { getServerSession } from "next-auth";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  let contactDetails: {
-    contactId: string;
-    mobileNumber: string;
-    contactName: string;
-    hasAccount: boolean;
-  }[] = [];
+
   try {
     if (!session || !session.user) {
       throw new Error("please login");
@@ -20,26 +15,28 @@ export async function GET(req: NextRequest) {
       where: {
         savedById: session.user.userId,
       },
+      orderBy: {
+        contactName: "asc",
+      },
       select: {
         contactId: true,
         contactName: true,
         mobileNumber: true,
         savedById: true,
+        friendsUserAccount: true,
       },
     });
     if (!contacts) {
-      console.log("inside error");
       throw new Error();
     }
-    for (const contact of contacts) {
-      const account = await prisma.user.findUnique({
-        where: { mobileNumber: contact.mobileNumber },
-      });
-      contactDetails.push({ ...contact, hasAccount: !!account });
-    }
-    console.log("outside error and before return");
+    // for (const contact of contacts) {
+    //   const account = await prisma.user.findUnique({
+    //     where: { mobileNumber: contact.mobileNumber },
+    //   });
+    //   contactDetails.push({ ...contact, hasAccount: !!account });
+    // }
     return NextResponse.json(
-      { message: "success", contacts: contactDetails },
+      { message: "success", contacts: contacts },
       { status: 200 }
     );
   } catch (error: any) {

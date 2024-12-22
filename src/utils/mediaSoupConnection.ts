@@ -17,6 +17,12 @@ let myStream: MediaStream | null = null;
 //     [track: string]: MediaStreamTrack;
 //   };
 // } = {};
+let audioProduce:
+  | mediasoupClient.types.Producer<mediasoupClient.types.AppData>
+  | undefined = undefined;
+let videoProduce:
+  | mediasoupClient.types.Producer<mediasoupClient.types.AppData>
+  | undefined = undefined;
 async function loadDevice(
   routerRtpCapabilities: mediasoupClient.types.RtpCapabilities
 ) {
@@ -230,10 +236,10 @@ export async function createSendTransport(
           const videoTrack = myStream.getVideoTracks();
           const audioTrack = myStream.getAudioTracks();
 
-          await sendTransport?.produce({
+          audioProduce = await sendTransport?.produce({
             track: audioTrack[0],
           });
-          await sendTransport?.produce({
+          videoProduce = await sendTransport?.produce({
             track: videoTrack[0],
           });
         } else {
@@ -386,7 +392,6 @@ export async function consumeData(
       kind: messageData.kind,
       rtpParameters: messageData.rtpParameters,
     });
-
     if (consumeData) {
       console.log("consumeData: ", consumeData);
       // console.log("producerUserId: ", messageData.producedUserId);
@@ -420,7 +425,36 @@ export async function consumeData(
     console.error("no data to consume", error);
   }
 }
-
+export async function changeCamera(cameraId: string) {
+  console.log("reached change camera. cameraId is ", cameraId);
+  try {
+    const newStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        deviceId: cameraId,
+      },
+    });
+    console.log(newStream);
+    const videoTrack = newStream.getVideoTracks()[0];
+    console.log("new track", videoTrack);
+    if (videoProduce) {
+      await videoProduce.replaceTrack({
+        track: videoTrack,
+      });
+      const videoElement = document.getElementById(
+        "myStreamVideoElement"
+      ) as HTMLVideoElement;
+      videoElement.srcObject = newStream;
+      console.log("Track replaced successfully!");
+    } else {
+      console.error(
+        "No video producer available to replace track.",
+        videoProduce
+      );
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
 export function clearMediaSoupConnection(
   socket: WebSocket | null,
   userId: string
@@ -449,6 +483,8 @@ export function clearMediaSoupConnection(
 
   device = null;
   sendTransport = null;
+  audioProduce && audioProduce?.close();
+  videoProduce && videoProduce?.close();
   myStream && myStream.getTracks().forEach((track) => track.stop());
   myStream = null;
   sendTransport = null;

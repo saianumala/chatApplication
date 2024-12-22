@@ -25,15 +25,20 @@ export async function POST(req: NextRequest) {
       mobileNumber,
       contactName,
     }: { mobileNumber: string; contactName: string } = contactdata;
-
+    const friendsAccount = await prisma.user.findUnique({
+      where: {
+        mobileNumber: mobileNumber,
+      },
+    });
     const newContact = await prisma.contact.create({
       data: {
         contactName: contactName,
         mobileNumber: mobileNumber,
         savedById: session.user.userId!,
+        friendsAccountId: friendsAccount?.id,
       },
     });
-    return NextResponse.json({ message: "success" });
+    return NextResponse.json({ message: "success", newContact: newContact });
   } catch (error: any) {
     console.log(error);
     return NextResponse.json({ message: error.messasge }, { status: 400 });

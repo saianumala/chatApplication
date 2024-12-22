@@ -6,6 +6,8 @@ import { useRecoilValue } from "recoil";
 export function DisplayMessages() {
   const messages = useRecoilValue(messagesAtom);
   const { data: session } = useSession();
+  console.log("messages", messages);
+
   const scrollRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (scrollRef.current) {

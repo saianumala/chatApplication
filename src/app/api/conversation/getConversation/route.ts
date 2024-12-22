@@ -44,10 +44,7 @@ export async function GET(req: NextRequest) {
     if (!conversation) {
       throw new Error("no conversation found");
     }
-    return NextResponse.json(
-      { conversationMessages: conversation },
-      { status: 200 }
-    );
+    return NextResponse.json({ conversation: conversation }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json({ message: error.message }, { status: 400 });
   }

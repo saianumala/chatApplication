@@ -9,8 +9,9 @@ import {
 } from "@/recoil_store/src/atoms/atoms";
 import {
   closeConversation,
+  handleChat,
   openConversation,
-} from "@/utils/openAndCloseConversations";
+} from "@/utils/handlerFunctions";
 import { useWebSocketHandler } from "@/utils/webSocetConnection";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -67,31 +68,20 @@ export default function SearchContacts({
       console.error("Error while checking conversation:", error);
     }
   }
-  function conversationAndMessageSelection(conversation: any) {
-    console.log(
-      "conversation inside conversatioAndMessageSelection",
-      conversation
-    );
-    if (conversation && conversation.conversation.messages) {
-      console.log("conversation messages", conversation.conversation.messages);
-      closeConversation({
-        socket: socket,
-        selectedConversation: selectedConversation,
-        userId: session?.user.userId,
-      });
-      openConversation({
-        conversationId: conversation.conversation.conversation_id,
-        socket: socket,
-        userId: session?.user.userId,
-      });
-      setselectedConversation(conversation);
-      setMessages(conversation.conversation.messages);
-    } else {
-      setselectedConversation(conversation);
+  async function conversationAndMessageSelection(conversation: any) {
+    const newSelectedConversationData = await handleChat({
+      chosenConversation: conversation.conversation,
+      selectedConversationId: conversation.conversation_id || null,
+      socket: socket,
+      userId: session?.user.userId || "",
+    });
 
-      setMessages([]);
-    }
+    setselectedConversation({
+      conversation: newSelectedConversationData.conversation,
+    });
+    setMessages(newSelectedConversationData.conversation.messages);
   }
+
   async function createConversation(friendNumber: string) {
     try {
       const response = await fetch("/api/conversation/create", {
@@ -127,16 +117,19 @@ export default function SearchContacts({
     };
   }) {
     let checkedData = await checkConversation(searchedContact.mobileNumber);
-    console.log("conversaton after check", checkedData);
+    console.log(
+      "conversaton after check",
+      checkedData.conversation.conversation_id
+    );
     if (checkedData.message === "inviteFriend") {
       alert("invite your friend");
     } else if (checkedData.message === "conversationFound") {
-      conversationAndMessageSelection(checkedData);
+      await conversationAndMessageSelection(checkedData);
     } else if (checkedData.message === "conversationNotFound") {
       const createConversationData = await createConversation(
         searchedContact.mobileNumber
       );
-      conversationAndMessageSelection(createConversationData);
+      await conversationAndMessageSelection(createConversationData);
     } else {
       console.log("error", checkedData.message);
     }

@@ -1055,6 +1055,9 @@ async function handleOpenConversation({
   if (closeConversations.has(userId)) {
     closeConversations.get(userId)?.delete(conversationId);
   }
+  console.log(
+    `opened conversation userID = ${userId}, conversationId: ${conversationId}`
+  );
   if (conversationId) {
     openConversations.get(userId)?.add(conversationId);
     await prisma.readStatus.updateMany({
@@ -1081,6 +1084,10 @@ function handleCloseConversation({
   if (openConversations.has(userId)) {
     openConversations.get(userId)?.delete(conversationId);
   }
+  console.log(
+    `closed conversation userID = ${userId}, conversationId: ${conversationId}`
+  );
+
   if (conversationId) {
     closeConversations.get(userId)?.add(conversationId);
   }

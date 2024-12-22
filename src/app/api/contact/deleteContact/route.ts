@@ -14,15 +14,21 @@ export async function DELETE(req: NextRequest) {
       throw new Error("please login");
     }
 
-    await prisma.contact.delete({
+    const deletedContact = await prisma.contact.delete({
       where: {
         savedById_mobileNumber: {
           mobileNumber: mobileNumber,
           savedById: session.user?.userId!,
         },
       },
+      select: {
+        contactId: true,
+      },
     });
-    return NextResponse.json({ message: "success" }, { status: 200 });
+    return NextResponse.json(
+      { message: "success", deletedContact },
+      { status: 200 }
+    );
   } catch (error: any) {
     return NextResponse.json({ message: error.message }, { status: 400 });
   }
