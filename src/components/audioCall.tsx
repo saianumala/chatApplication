@@ -2,11 +2,13 @@ import {
   audioCallAtom,
   audioCallInitiatedAtom,
   callAcceptedAtom,
+  conversationAtom,
   incomingCallAtom,
   incomingCallMessageDataAtom,
   remoteMediaStreamsSelector,
   remoteTracksAtom,
 } from "@/recoil_store/src/atoms/atoms";
+import { clearMediaStream } from "@/utils/getMediaStream";
 import {
   acceptIncomingCall,
   clearMediaSoupConnection,
@@ -21,7 +23,7 @@ export function AudioCall() {
     audioCallInitiatedAtom
   );
   const { data: session } = useSession();
-
+  const selectedConversation = useRecoilValue(conversationAtom);
   const [callEnded, setCallEnded] = useState(false);
   const incomingCallMessageData = useRecoilValue(incomingCallMessageDataAtom);
   const audioCall = useRecoilValue(audioCallAtom);
@@ -52,81 +54,65 @@ export function AudioCall() {
         const remoteAudioDiv = document.getElementById(
           "remoteAudioDiv"
         ) as HTMLDivElement;
-        // if (myStreamVideoElement && myStreamVideoElement.srcObject === null) {
-        //   getMediaStream("VIDEO").then((stream) => {
-        //     myStreamVideoElement.srcObject = stream;
-        //   });
-        // }
-        streamerMediaStreams?.map((remoteMediastream) => {
-          if (remoteMediastream) {
-            const audioElement = document.getElementById(
-              remoteMediastream.remoteStreamerId
-            ) as HTMLAudioElement;
-            if (!audioElement) {
-              console.log("remoteMediastream ", streamerMediaStreams.length);
-              const remoteAudioELement = document.createElement("audio");
-              remoteAudioELement.autoplay = true;
-              remoteAudioELement.id = remoteMediastream.remoteStreamerId;
-              remoteAudioELement.style.width = "100px";
-              remoteAudioELement.style.height = "100px";
-              const remoteAudioDiv = document.getElementById(
-                "remoteAudioDiv"
-              ) as HTMLDivElement;
-              remoteAudioDiv.style.border = "2px solid red";
-              if (remoteAudioELement.srcObject === null) {
-                remoteAudioELement.srcObject = remoteMediastream.mediaStream;
-              }
-              console.log("remoteMediaStream: ", remoteMediastream);
-              console.log("remoteAudioELement", remoteAudioELement);
-              // console.log("remoteVideoDiv", remoteVideoDiv);
-              remoteAudioDiv.appendChild(remoteAudioELement);
-            }
-          } else {
-            console.log("remote mediastream not found");
-          }
-        });
+
+        // streamerMediaStreams?.map((remoteMediastream) => {
+        //   if (remoteMediastream) {
+        //     const audioElement = document.getElementById(
+        //       remoteMediastream.remoteStreamerId
+        //     ) as HTMLAudioElement;
+        //     if (!audioElement) {
+        //       console.log("remoteMediastream ", streamerMediaStreams.length);
+        //       const remoteAudioELement = document.createElement("audio");
+        //       remoteAudioELement.autoplay = true;
+        //       remoteAudioELement.id = remoteMediastream.remoteStreamerId;
+        //       remoteAudioELement.style.width = "100px";
+        //       remoteAudioELement.style.height = "100px";
+        //       const remoteAudioDiv = document.getElementById(
+        //         "remoteAudioDiv"
+        //       ) as HTMLDivElement;
+        //       remoteAudioDiv.style.border = "2px solid red";
+        //       if (remoteAudioELement.srcObject === null) {
+        //         remoteAudioELement.srcObject = remoteMediastream.mediaStream;
+        //       }
+        //       console.log("remoteMediaStream: ", remoteMediastream);
+        //       console.log("remoteAudioELement", remoteAudioELement);
+        //       // console.log("remoteVideoDiv", remoteVideoDiv);
+        //       remoteAudioDiv.appendChild(remoteAudioELement);
+        //     }
+        //   } else {
+        //     console.log("remote mediastream not found");
+        //   }
+        // });
       }
     }
   }, [streamerMediaStreams, audioCallInitiated, incomingCall, callAccepted]);
   useEffect(() => {
     if (callEnded) {
-      // console.log("clearing tracks");
-      // console.log("before clearing tracks: ", myStream?.getTracks());
-      // console.log("video call:", videoCall);
-      // console.log("incomingCall:", incomingCall);
-      // console.log("videoCallInitiated:", videoCallInitiated);
-      // const tracks = myStream?.getTracks();
-      // tracks && tracks.map((tracks) => tracks.stop());
-      // setMyStream(null);
-
-      // myStreamVideoElement.srcObject && (myStreamVideoElement.srcObject = null);
       setAudioCallInitiated(false);
+      clearMediaStream();
       setIncomingCall(false);
       setCallAccepted(false);
 
       setAudioCall(false);
-      setCallEnded(false);
     }
   }, [callEnded]);
   return (
     <div className="w-full h-full group">
       {audioCall && audioCallInitiated && (
         // logic to handle outgoing call
-        <div className="relative bg-slate-500 w-full h-full">
+
+        <div className="relative bg-slate-700 w-[350px] h-full">
           <div className="flex justify-center items-center w-full h-full">
             <div className="text-center w-[150px] rounded-full object-cover bg-black text-white h-[150px]">
-              Dp
+              {selectedConversation?.conversation.conversationName || "DP"}
             </div>
           </div>
           <div
             onClick={() => {
-              clearMediaSoupConnection(
-                socket,
-                session?.user.userId || ""
-                // setMyStream
-              );
+              clearMediaSoupConnection(socket, session?.user.userId || "");
+              setCallEnded(true);
             }}
-            className="absolute rounded-full w-[35px] opacity-0 group-hover:opacity-100 transition-all bg-red-800 ease-in -translate-x-2/4 left-2/4 bottom-10"
+            className="absolute rounded-full w-[35px] group-hover:opacity-100 transition-all bg-red-800 ease-in -translate-x-2/4 left-2/4 bottom-10"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -145,10 +131,10 @@ export function AudioCall() {
       {/* <div> */}
       {audioCall && incomingCall && (
         // logic to handle incoming audio call
-        <div className="relative bg-slate-400 w-full h-full">
+        <div className="relative bg-slate-700 w-[] h-full">
           <div className="flex justify-center items-center w-full h-full">
             <div className="text-center w-[150px] rounded-full object-cover bg-black text-white h-[150px]">
-              Dp
+              DP
             </div>
           </div>
           <div className="absolute rounded-full w-[35px] transition-all ease-in -translate-x-2/4 left-2/4 bottom-10">
@@ -193,12 +179,30 @@ export function AudioCall() {
 
       {audioCall && callAccepted && (
         // handle logic when call is accepted
-        <div className="relative bg-slate-400 w-full h-full">
-          <div
-            id="remoteAudioDiv"
-            className="flex flex-wrap justify-center items-center w-full h-full"
-          ></div>
-          <div className="absolute rounded-full w-[35px] opacity-0 group-hover:opacity-100 transition-all bg-red-800 ease-in -translate-x-2/4 left-2/4 bottom-10">
+        <div className="relative bg-slate-700 w-full h-full">
+          <div className="flex justify-center items-center w-full h-full">
+            <div className="text-center w-[150px] rounded-full object-cover  bg-black text-white h-[150px]">
+              {selectedConversation?.conversation.conversationName || "DP"}
+            </div>
+          </div>
+          {streamerMediaStreams?.map((streamerMediaStream) => (
+            <div
+              key={streamerMediaStream.remoteStreamerId}
+              id="remoteAudioDiv"
+              className="flex flex-wrap justify-center items-center w-full h-full"
+            >
+              <audio
+                autoPlay
+                ref={(audio) => {
+                  if (audio) {
+                    audio.srcObject = streamerMediaStream?.mediaStream;
+                  }
+                }}
+              ></audio>
+            </div>
+          ))}
+
+          <div className="absolute rounded-full w-[35px]  transition-all bg-red-800 ease-in -translate-x-2/4 left-2/4 bottom-10">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               height="35px"

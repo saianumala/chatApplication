@@ -78,16 +78,13 @@ export async function requestTransports(
   socket: WebSocket | null,
   myNumber: string
 ) {
-  // console.log("device: ", device);
   const routerRtpCapabilities = messageData?.rtpCapabilities;
-  // console.log("rtpCapabilities: ", routerRtpCapabilities);
-  // console.log(`create ${messageData.transportDirection}Transport first`);
-  // console.log("mssageData: ", messageData);
+
   await loadDevice(routerRtpCapabilities);
   conversationId = conversationId;
   myNumber = myNumber;
+
   if (messageData.sendTransportFirst) {
-    // console.log("sending sendTransport request");
     if (!sendTransport) {
       socket?.send(
         JSON.stringify({
@@ -101,8 +98,6 @@ export async function requestTransports(
       );
     }
     if (!recvTransport) {
-      // console.log("sending recvTransport request");
-
       socket?.send(
         JSON.stringify({
           messageType: "createTransport",
@@ -116,8 +111,6 @@ export async function requestTransports(
     }
   } else if (!messageData.sendTransportFirst) {
     if (!recvTransport) {
-      // console.log("sending recvTransport request");
-
       socket?.send(
         JSON.stringify({
           messageType: "createTransport",
@@ -130,8 +123,6 @@ export async function requestTransports(
       );
     }
     if (!sendTransport) {
-      // console.log("sending sendTransport request");
-
       socket?.send(
         JSON.stringify({
           messageType: "createTransport",
@@ -246,7 +237,7 @@ export async function createSendTransport(
           console.log("my stream is empty: ", myStream);
         }
       } else if (callType === "audio") {
-        const myStream = await getMediaStream("VIDEO");
+        const myStream = await getMediaStream("AUDIO");
         if (myStream) {
           const audioTrack = myStream.getAudioTracks();
 

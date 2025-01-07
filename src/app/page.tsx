@@ -14,6 +14,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import CallProvider from "@/components/callProvider";
 import { getMediaStream } from "@/utils/getMediaStream";
+import AudioDisplay from "@/components/audioDisplay";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -51,15 +52,10 @@ export default function Home() {
         id="innerdiv"
         className="flex gap-1 items-start justify-center w-full h-full bg-slate-200"
       >
-        <div
-          className={`${
-            videoCall || audioCall
-              ? "max-w-[350px] max-h-[95%] sm:max-w-full sm:max-h-full absolute  top-2/4 left-2/4 bg-black z-10 sm:w-3/4 sm:h-3/4 w-full h-full object-cover -translate-y-2/4 -translate-x-2/4"
-              : "hidden"
-          }`}
-        >
+        <div className={`${videoCall || audioCall ? "block" : "hidden"}`}>
           <CallProvider />
         </div>
+
         <div
           className={`max-w-[400px] sm:w-[400px] p-2 h-full ${
             selectedConversation ? "hidden sm:block " : "w-full"

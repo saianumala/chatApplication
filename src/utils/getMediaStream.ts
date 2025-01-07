@@ -1,5 +1,6 @@
 let stream: MediaStream | null = null;
 export async function getMediaStream(type: "VIDEO" | "AUDIO") {
+  console.log("strema", stream);
   const mediaConstraints: MediaStreamConstraints = {};
 
   if (type === "VIDEO") {

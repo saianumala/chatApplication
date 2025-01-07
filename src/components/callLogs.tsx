@@ -52,16 +52,22 @@ export function CallLogs() {
     const now = new Date();
     const diffInMilliSec = now.getTime() - callDate.getTime();
     const diffInMinutes: number = Math.floor(diffInMilliSec / 60000);
-    const diffInHours: number = Math.floor(diffInMinutes / 60);
-    const diffInDays: number = Math.floor(diffInHours / 24);
-
-    // Within the last hour
     if (diffInMinutes < 60) {
       return `${diffInMinutes} minute${diffInMinutes !== 1 ? "s" : ""} ago`;
     }
 
-    // Today
-    if (diffInDays === 0) {
+    const isSameDay = (d1: Date, d2: Date) =>
+      d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate();
+
+    const isYesterday = (d1: Date, d2: Date) => {
+      const yesterday = new Date(d2);
+      yesterday.setDate(d2.getDate() - 1);
+      return isSameDay(d1, yesterday);
+    };
+
+    if (isSameDay(callDate, now)) {
       const formatter = new Intl.DateTimeFormat("en-US", {
         hour: "numeric",
         minute: "numeric",
@@ -70,8 +76,7 @@ export function CallLogs() {
       return `Today at ${formatter.format(callDate)}`;
     }
 
-    // Yesterday
-    if (diffInDays === 1) {
+    if (isYesterday(callDate, now)) {
       const formatter = new Intl.DateTimeFormat("en-US", {
         hour: "numeric",
         minute: "numeric",
@@ -79,19 +84,6 @@ export function CallLogs() {
       });
       return `Yesterday at ${formatter.format(callDate)}`;
     }
-
-    // Within the last week
-    if (diffInDays <= 7) {
-      const formatter = new Intl.DateTimeFormat("en-US", {
-        weekday: "long",
-        hour: "numeric",
-        minute: "numeric",
-        hour12: true,
-      });
-      return `${formatter.format(callDate)}`;
-    }
-
-    // Older than a week
     const formatter = new Intl.DateTimeFormat("en-US", {
       year: "numeric",
       month: "short",

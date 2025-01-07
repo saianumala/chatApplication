@@ -11,12 +11,12 @@ function CallProvider() {
   return (
     <div className="w-full h-full">
       {videoCall && (
-        <div className="w-full h-full ">
+        <div className="max-w-[350px] max-h-[95%] sm:max-w-full sm:max-h-full absolute  top-2/4 left-2/4 bg-black z-10 sm:w-3/4 sm:h-3/4 w-full h-full object-cover -translate-y-2/4 -translate-x-2/4">
           <VideoCall />
         </div>
       )}
       {audioCall && (
-        <div className="w-full h-full">
+        <div className="max-w-[350px] max-h-[95%] sm:max-w-[350px] sm:max-h-full absolute  top-2/4 left-2/4 bg-black z-10 sm:w-3/4 sm:h-3/4 w-full h-full object-cover -translate-y-2/4 -translate-x-2/4">
           <AudioCall />
         </div>
       )}
