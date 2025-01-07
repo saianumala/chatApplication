@@ -187,7 +187,7 @@ export function AudioCall() {
           </div>
           {streamerMediaStreams?.map((streamerMediaStream) => (
             <div
-              key={streamerMediaStream.remoteStreamerId}
+              key={streamerMediaStream?.remoteStreamerId}
               id="remoteAudioDiv"
               className="flex flex-wrap justify-center items-center w-full h-full"
             >
@@ -195,7 +195,7 @@ export function AudioCall() {
                 autoPlay
                 ref={(audio) => {
                   if (audio) {
-                    audio.srcObject = streamerMediaStream?.mediaStream;
+                    audio.srcObject = streamerMediaStream?.mediaStream || null;
                   }
                 }}
               ></audio>
